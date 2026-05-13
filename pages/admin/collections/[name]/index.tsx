@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Layout } from '@/components/admin/Layout';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { Plus, Edit, Trash2, GripVertical, X, Settings } from 'lucide-react';
+import { Plus, Edit, Trash2, GripVertical, X, Settings, Download, FileSpreadsheet } from 'lucide-react';
 import { ColumnConfigModal } from '@/components/admin/ColumnConfigModal';
 import {
   DndContext,
@@ -38,9 +38,11 @@ interface SortableRowProps {
   onImageClick: (images: string[], startIndex: number) => void;
   visibleColumns: ColumnConfig[];
   collectionType: any;
+  isSelected: boolean;
+  onSelect: (id: string, checked: boolean) => void;
 }
 
-const SortableRow: React.FC<SortableRowProps> = ({ entry, index, name, fields, onDelete, onImageClick, visibleColumns, collectionType }) => {
+const SortableRow: React.FC<SortableRowProps> = ({ entry, index, name, fields, onDelete, onImageClick, visibleColumns, collectionType, isSelected, onSelect }) => {
   const {
     attributes,
     listeners,
@@ -302,6 +304,8 @@ const SortableRow: React.FC<SortableRowProps> = ({ entry, index, name, fields, o
         <td className="px-4 py-4 w-12">
           <input
             type="checkbox"
+            checked={isSelected}
+            onChange={(e) => onSelect(entry.id, e.target.checked)}
             className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
           />
         </td>
@@ -499,6 +503,8 @@ export default function CollectionList() {
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [isColumnConfigOpen, setIsColumnConfigOpen] = useState(false);
   const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([]);
+  const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -518,6 +524,18 @@ export default function CollectionList() {
       initializeColumnConfig();
     }
   }, [collectionType]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showExportMenu && !target.closest('.export-menu-container')) {
+        setShowExportMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showExportMenu]);
 
   const initializeColumnConfig = () => {
     const fields = collectionType.fields?.fields || [];
@@ -622,6 +640,202 @@ export default function CollectionList() {
     setLightboxIndex(startIndex);
   };
 
+  const handleSelectEntry = (id: string, checked: boolean) => {
+    const newSelected = new Set(selectedEntries);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedEntries(newSelected);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedEntries(new Set(entries.map(e => e.id)));
+    } else {
+      setSelectedEntries(new Set());
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedEntries.size === 0) {
+      alert('Please select entries to delete');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete ${selectedEntries.size} entries?`)) {
+      return;
+    }
+
+    try {
+      const deletePromises = Array.from(selectedEntries).map(id =>
+        fetch(`/api/collections/${name}/${id}`, { method: 'DELETE' })
+      );
+
+      const results = await Promise.all(deletePromises);
+      const successCount = results.filter(r => r.ok).length;
+
+      if (successCount === selectedEntries.size) {
+        setEntries(entries.filter(e => !selectedEntries.has(e.id)));
+        setSelectedEntries(new Set());
+        alert(`Successfully deleted ${successCount} entries`);
+      } else {
+        alert(`Deleted ${successCount} out of ${selectedEntries.size} entries`);
+        fetchData(); // Refresh to get current state
+      }
+    } catch (error) {
+      console.error('Error deleting entries:', error);
+      alert('Failed to delete entries');
+    }
+  };
+
+  const exportToCSV = (data: any[]) => {
+    if (data.length === 0) {
+      alert('No data to export');
+      return;
+    }
+
+    const fields = collectionType.fields?.fields || [];
+    
+    // Create CSV header
+    const headers = ['ID', ...fields.map((f: any) => f.displayName)];
+    const csvRows = [headers.join(',')];
+
+    // Add data rows
+    data.forEach(entry => {
+      const row = [
+        entry.id,
+        ...fields.map((field: any) => {
+          let value = entry[field.name];
+          
+          // Handle different field types
+          if (value === null || value === undefined) {
+            return '';
+          }
+          
+          if (field.type === 'media') {
+            if (field.multiple && Array.isArray(value)) {
+              return `"${value.join('; ')}"`;
+            }
+            return `"${value}"`;
+          }
+          
+          if (typeof value === 'object') {
+            return `"${JSON.stringify(value).replace(/"/g, '""')}"`;
+          }
+          
+          // Escape quotes and wrap in quotes if contains comma
+          const stringValue = String(value);
+          if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+          }
+          
+          return stringValue;
+        })
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    // Create and download file
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${name}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportToExcel = (data: any[]) => {
+    if (data.length === 0) {
+      alert('No data to export');
+      return;
+    }
+
+    const fields = collectionType.fields?.fields || [];
+    
+    // Create HTML table for Excel
+    let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+    html += '<head><meta charset="utf-8"/></head><body>';
+    html += '<table border="1">';
+    
+    // Header row
+    html += '<tr>';
+    html += '<th>ID</th>';
+    fields.forEach((field: any) => {
+      html += `<th>${field.displayName}</th>`;
+    });
+    html += '</tr>';
+    
+    // Data rows
+    data.forEach(entry => {
+      html += '<tr>';
+      html += `<td>${entry.id}</td>`;
+      fields.forEach((field: any) => {
+        let value = entry[field.name];
+        
+        if (value === null || value === undefined) {
+          html += '<td></td>';
+          return;
+        }
+        
+        if (field.type === 'media') {
+          if (field.multiple && Array.isArray(value)) {
+            html += `<td>${value.join('; ')}</td>`;
+          } else {
+            html += `<td>${value}</td>`;
+          }
+        } else if (typeof value === 'object') {
+          html += `<td>${JSON.stringify(value)}</td>`;
+        } else {
+          html += `<td>${String(value).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`;
+        }
+      });
+      html += '</tr>';
+    });
+    
+    html += '</table></body></html>';
+    
+    // Create and download file
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${name}_${new Date().toISOString().split('T')[0]}.xls`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExport = (format: 'csv' | 'excel', scope: 'selected' | 'all') => {
+    let dataToExport: any[];
+    
+    if (scope === 'selected') {
+      if (selectedEntries.size === 0) {
+        alert('Please select entries to export');
+        return;
+      }
+      dataToExport = entries.filter(e => selectedEntries.has(e.id));
+    } else {
+      dataToExport = entries;
+    }
+    
+    if (format === 'csv') {
+      exportToCSV(dataToExport);
+    } else {
+      exportToExcel(dataToExport);
+    }
+    
+    setShowExportMenu(false);
+  };
+
   // Helper to check if column is visible
   const isColumnVisible = (key: string) => {
     const column = columnConfig.find((col) => col.key === key);
@@ -659,6 +873,64 @@ export default function CollectionList() {
             )}
           </div>
           <div className="flex items-center space-x-3">
+            {selectedEntries.size > 0 && (
+              <>
+                <div className="text-sm text-gray-600 px-3 py-2 bg-blue-50 rounded-lg">
+                  {selectedEntries.size} selected
+                </div>
+                <button
+                  onClick={handleBulkDelete}
+                  className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                >
+                  <Trash2 size={20} />
+                  <span>Delete Selected</span>
+                </button>
+              </>
+            )}
+            <div className="relative export-menu-container">
+              <button
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+              >
+                <Download size={20} />
+                <span>Export</span>
+              </button>
+              {showExportMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                  <div className="py-2">
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Export as CSV</div>
+                    <button
+                      onClick={() => handleExport('csv', 'selected')}
+                      disabled={selectedEntries.size === 0}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Export Selected ({selectedEntries.size})
+                    </button>
+                    <button
+                      onClick={() => handleExport('csv', 'all')}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Export All ({entries.length})
+                    </button>
+                    <div className="border-t border-gray-200 my-2"></div>
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Export as Excel</div>
+                    <button
+                      onClick={() => handleExport('excel', 'selected')}
+                      disabled={selectedEntries.size === 0}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Export Selected ({selectedEntries.size})
+                    </button>
+                    <button
+                      onClick={() => handleExport('excel', 'all')}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Export All ({entries.length})
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             <button
               onClick={() => setIsColumnConfigOpen(true)}
               className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
@@ -697,7 +969,14 @@ export default function CollectionList() {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-12"></th>
                   )}
                   {isColumnVisible('checkbox') && (
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-12"></th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-12">
+                      <input
+                        type="checkbox"
+                        checked={selectedEntries.size === entries.length && entries.length > 0}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                    </th>
                   )}
                   {isColumnVisible('sno') && (
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-16">ID</th>
@@ -735,6 +1014,8 @@ export default function CollectionList() {
                         onImageClick={handleImageClick}
                         visibleColumns={columnConfig}
                         collectionType={collectionType}
+                        isSelected={selectedEntries.has(entry.id)}
+                        onSelect={handleSelectEntry}
                       />
                     ))}
                   </tbody>
