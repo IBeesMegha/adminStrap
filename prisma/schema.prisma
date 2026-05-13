@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Content Type Definitions
+model CollectionType {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayName String
+  description String?
+  fields      Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SingleType {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayName String
+  description String?
+  fields      Json
+  data        Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Component {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayName String
+  category    String
+  fields      Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Media Library
+model Media {
+  id              String   @id @default(cuid())
+  name            String
+  alternativeText String?
+  caption         String?
+  url             String
+  mime            String
+  size            Int
+  width           Int?
+  height          Int?
+  ext             String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("media")
+}
+
+// Dynamic Collection Types
+
+model Teams {
+  id             String        @id @default(cuid())
+  name           String?
+  designation    String?
+  teamCategoryId String?
+  teamCategory   TeamCategory? @relation("TeamsToTeamCategory", fields: [teamCategoryId], references: [id])
+  profileImg     String?
+  portfolioImg   Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@map("teams")
+}
+
+model TeamCategory {
+  id        String   @id @default(cuid())
+  name      String?
+  content   String?
+  teamss    Teams[]  @relation("TeamsToTeamCategory")
+  testImg   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("team_category")
+}
