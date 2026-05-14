@@ -12,26 +12,26 @@ const fieldTypes = [
   {
     category: 'DEFAULT',
     fields: [
-      { type: 'text', icon: Type, label: 'Text', description: 'Small or long text like title or description' },
-      { type: 'richtext', icon: FileText, label: 'Rich text (Blocks)', description: 'The new JSON-based rich text editor' },
-      { type: 'number', icon: Hash, label: 'Number', description: 'Numbers (integer, float, decimal)' },
-      { type: 'date', icon: Calendar, label: 'Date', description: 'A date picker with hours, minutes and seconds' },
-      { type: 'boolean', icon: ToggleLeft, label: 'Boolean', description: 'Yes or no, 1 or 0, true or false' },
-      { type: 'email', icon: Mail, label: 'Email', description: 'Email field with validations format' },
-      { type: 'password', icon: Code, label: 'Password', description: 'Password field with encryption' },
-      { type: 'media', icon: Image, label: 'Media', description: 'Files like images, videos, etc' },
-      { type: 'relation', icon: Link, label: 'Relation', description: 'Refers to a Collection Type' },
-      { type: 'enumeration', icon: List, label: 'Enumeration', description: 'List of values, then pick one' },
-      { type: 'json', icon: Code, label: 'JSON', description: 'Data in JSON format' },
-      { type: 'uid', icon: Hash, label: 'UID', description: 'Unique identifier' },
+      { type: 'text', icon: Type, label: 'Text', description: 'Small or long text like title or description', iconBg: 'bg-green-100', iconColor: 'text-green-600' },
+      { type: 'richtext', icon: FileText, label: 'Rich text (Blocks)', description: 'The new JSON-based rich text editor', iconBg: 'bg-blue-100', iconColor: 'text-blue-600' },
+      { type: 'number', icon: Hash, label: 'Number', description: 'Numbers (integer, float, decimal)', iconBg: 'bg-red-100', iconColor: 'text-red-600' },
+      { type: 'date', icon: Calendar, label: 'Date', description: 'A date picker with hours, minutes and seconds', iconBg: 'bg-orange-100', iconColor: 'text-orange-600' },
+      { type: 'boolean', icon: ToggleLeft, label: 'Boolean', description: 'Yes or no, 1 or 0, true or false', iconBg: 'bg-green-100', iconColor: 'text-green-600' },
+      { type: 'json', icon: Code, label: 'JSON', description: 'Data in JSON format', iconBg: 'bg-blue-100', iconColor: 'text-blue-600' },
+      { type: 'email', icon: Mail, label: 'Email', description: 'Email field with validations format', iconBg: 'bg-red-100', iconColor: 'text-red-600' },
+      { type: 'password', icon: Code, label: 'Password', description: 'Password field with encryption', iconBg: 'bg-orange-100', iconColor: 'text-orange-600' },
+      { type: 'media', icon: Image, label: 'Media', description: 'Files like images, videos, etc', iconBg: 'bg-purple-100', iconColor: 'text-purple-600' },
+      { type: 'enumeration', icon: List, label: 'Enumeration', description: 'List of values, then pick one', iconBg: 'bg-pink-100', iconColor: 'text-pink-600' },
+      { type: 'relation', icon: Link, label: 'Relation', description: 'Refers to a Collection Type', iconBg: 'bg-blue-100', iconColor: 'text-blue-600' },
+      { type: 'uid', icon: Hash, label: 'UID', description: 'Unique identifier', iconBg: 'bg-purple-100', iconColor: 'text-purple-600' },
     ]
   },
   {
     category: 'CUSTOM',
     fields: [
-      { type: 'richtext-markdown', icon: FileText, label: 'Rich text (Markdown)', description: 'The classic rich text editor' },
-      { type: 'component', icon: ComponentIcon, label: 'Component', description: 'Group of fields that you can repeat or reuse' },
-      { type: 'dynamic-zone', icon: Layers, label: 'Dynamic zone', description: 'Dynamically pick components when editing content' },
+      { type: 'richtext-markdown', icon: FileText, label: 'Rich text (Markdown)', description: 'The classic rich text editor', iconBg: 'bg-blue-100', iconColor: 'text-blue-600' },
+      { type: 'component', icon: ComponentIcon, label: 'Component', description: 'Group of fields that you can repeat or reuse', iconBg: 'bg-gray-100', iconColor: 'text-gray-600' },
+      { type: 'dynamic-zone', icon: Layers, label: 'Dynamic zone', description: 'Dynamically pick components when editing content', iconBg: 'bg-gray-100', iconColor: 'text-gray-600' },
     ]
   }
 ];
@@ -87,8 +87,8 @@ export const FieldTypeSelector: React.FC<FieldTypeSelectorProps> = ({
                       onClick={() => onSelectFieldType(field.type)}
                       className="flex items-start space-x-3 p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left"
                     >
-                      <div className="flex-shrink-0 w-10 h-10 bg-gray-100 rounded flex items-center justify-center">
-                        <Icon size={20} className="text-gray-600" />
+                      <div className={`flex-shrink-0 w-10 h-10 ${field.iconBg} rounded flex items-center justify-center`}>
+                        <Icon size={20} className={field.iconColor} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-medium text-gray-900">{field.label}</h4>

@@ -101,6 +101,33 @@ export default async function handler(
 
       console.log('[API POST] Converted data:', convertedData);
 
+      // Check for unique field violations
+      for (const field of fields) {
+        if (field.unique && convertedData[field.name] !== undefined && convertedData[field.name] !== null && convertedData[field.name] !== '') {
+          const sanitizedFieldName = field.name
+            .replace(/[\s-]+/g, '_')
+            .replace(/[^a-zA-Z0-9_]/g, '')
+            .split('_')
+            .filter((part: string) => part.length > 0)
+            .map((part: string, index: number) => 
+              index === 0 ? part.toLowerCase() : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+            )
+            .join('');
+
+          const existingEntry = await findManyDynamic(name, {
+            where: {
+              [sanitizedFieldName]: convertedData[sanitizedFieldName]
+            }
+          });
+
+          if (existingEntry && existingEntry.length > 0) {
+            return res.status(400).json({ 
+              error: `This ${field.displayName} already exists. The field "${field.displayName}" must be unique.` 
+            });
+          }
+        }
+      }
+
       // Process component fields - create component entries if needed
       const processedData = await processComponentFields(convertedData, fields);
 

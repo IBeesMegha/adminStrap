@@ -99,6 +99,7 @@ export default function NewCollectionEntry() {
             fields={collectionType.fields.fields}
             onSubmit={handleSubmit}
             submitLabel="Create Entry"
+            collectionName={name as string}
           />
         </div>
       </div>

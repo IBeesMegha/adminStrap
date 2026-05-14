@@ -190,6 +190,8 @@ export default function EditCollectionEntry() {
             defaultValues={entry}
             onSubmit={handleSubmit}
             submitLabel="Update Entry"
+            collectionName={name as string}
+            entryId={id as string}
           />
         </div>
       </div>
