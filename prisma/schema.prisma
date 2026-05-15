@@ -37,6 +37,20 @@ model Component {
   fields      Json
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  
+  entries     ComponentEntry[]
+}
+
+model ComponentEntry {
+  id          String    @id @default(cuid())
+  componentId String
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  data        Json
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([componentId])
+  @@map("component_entries")
 }
 
 // Media Library
@@ -51,6 +65,7 @@ model Media {
   width           Int?
   height          Int?
   ext             String
+  folder          String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -59,41 +74,13 @@ model Media {
 
 // Dynamic Collection Types
 
-model Teams {
-  id             String        @id @default(cuid())
-  name           String?
-  designation    String?
-  teamCategoryId String?
-  teamCategory   TeamCategory? @relation("TeamsToTeamCategory", fields: [teamCategoryId], references: [id])
-  profileImg     String?
-  portfolioImg   Json?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-
-  @@map("teams")
-}
-
-model TeamCategory {
+model Blogs {
   id        String   @id @default(cuid())
   name      String?
   content   String?
-  teamss    Teams[]  @relation("TeamsToTeamCategory")
-  testImg   String?
+  thumb     Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@map("team_category")
-}
-
-model Blogs {
-  id        String    @id @default(cuid())
-  title     String?
-  date      DateTime?
-  order     Float?
-  slug      String?
-  thumb     String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
 
   @@map("blogs")
 }

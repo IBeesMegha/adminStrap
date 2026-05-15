@@ -28,7 +28,15 @@ export async function executeRawQuery(query: string, params: any[] = []) {
 /**
  * Get all records from a dynamic table
  */
-export async function findManyDynamic(tableName: string) {
+export async function findManyDynamic(tableName: string, options?: { where?: Record<string, any> }) {
+  if (options?.where) {
+    const whereKeys = Object.keys(options.where);
+    const whereValues = Object.values(options.where);
+    const whereClause = whereKeys.map((key, i) => `"${key}" = $${i + 1}`).join(' AND ');
+    const query = `SELECT * FROM "${tableName}" WHERE ${whereClause} ORDER BY "createdAt" DESC`;
+    return await executeRawQuery(query, whereValues);
+  }
+  
   const query = `SELECT * FROM "${tableName}" ORDER BY "createdAt" DESC`;
   return await executeRawQuery(query);
 }

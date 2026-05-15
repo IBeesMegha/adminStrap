@@ -9,6 +9,7 @@ interface AddRelationModalProps {
   currentCollectionName: string;
   currentCollectionDisplayName: string;
   existingFieldNames?: string[];
+  editingField?: Field | null;
 }
 
 type RelationType = 'oneToOne' | 'oneToMany' | 'manyToOne' | 'manyToMany';
@@ -29,6 +30,7 @@ export const AddRelationModal: React.FC<AddRelationModalProps> = ({
   currentCollectionName,
   currentCollectionDisplayName,
   existingFieldNames = [],
+  editingField = null,
 }) => {
   const [availableCollections, setAvailableCollections] = useState<any[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string>('');

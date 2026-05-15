@@ -118,7 +118,7 @@ export default async function handler(
             where: {
               [sanitizedFieldName]: convertedData[sanitizedFieldName]
             }
-          });
+          }) as any[];
 
           if (existingEntry && existingEntry.length > 0) {
             return res.status(400).json({ 
