@@ -79,6 +79,7 @@ function fieldTypeToPrismaType(fieldType: string, multiple?: boolean): string {
     'string': 'String',
     'text': 'String',
     'richtext': 'String',
+    'richtext-ckeditor': 'String',
     'number': 'Float',
     'boolean': 'Boolean',
     'date': 'DateTime',

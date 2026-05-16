@@ -30,6 +30,7 @@ const fieldTypes = [
     category: 'CUSTOM',
     fields: [
       { type: 'richtext-markdown', icon: FileText, label: 'Rich text (Markdown)', description: 'The classic rich text editor', iconBg: 'bg-blue-100', iconColor: 'text-blue-600' },
+      { type: 'richtext-ckeditor', icon: FileText, label: 'Rich text (CKEditor)', description: 'Full-featured WYSIWYG editor', iconBg: 'bg-blue-100', iconColor: 'text-blue-600' },
       { type: 'component', icon: ComponentIcon, label: 'Component', description: 'Group of fields that you can repeat or reuse', iconBg: 'bg-gray-100', iconColor: 'text-gray-600' },
       { type: 'dynamic-zone', icon: Layers, label: 'Dynamic zone', description: 'Dynamically pick components when editing content', iconBg: 'bg-gray-100', iconColor: 'text-gray-600' },
     ]

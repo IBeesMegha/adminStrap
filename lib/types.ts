@@ -5,6 +5,7 @@ export type FieldType =
   | 'string' 
   | 'text' 
   | 'richtext' 
+  | 'richtext-ckeditor'
   | 'number' 
   | 'boolean' 
   | 'date' 
@@ -108,6 +109,7 @@ export const createFieldSchema = (field: Field): z.ZodTypeAny => {
       }
       break;
     case 'richtext':
+    case 'richtext-ckeditor':
       schema = z.string();
       break;
     case 'number':

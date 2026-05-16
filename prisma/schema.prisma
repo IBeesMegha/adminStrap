@@ -37,17 +37,16 @@ model Component {
   fields      Json
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
   entries     ComponentEntry[]
 }
 
 model ComponentEntry {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   componentId String
   component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
   data        Json
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([componentId])
   @@map("component_entries")
@@ -79,6 +78,7 @@ model Blogs {
   name      String?
   content   String?
   thumb     Json?
+  cktest    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

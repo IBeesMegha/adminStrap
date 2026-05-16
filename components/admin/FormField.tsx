@@ -16,6 +16,8 @@ const ReactQuill = dynamic(() => import('react-quill'), {
 });
 import 'react-quill/dist/quill.snow.css';
 
+import { CKEditorField } from './CKEditorField';
+
 interface FormFieldProps {
   field: Field;
   register: any;
@@ -173,6 +175,16 @@ export const FormField: React.FC<FormFieldProps> = ({
                 className="bg-white"
               />
             )}
+          </div>
+        );
+
+      case 'richtext-ckeditor':
+        return (
+          <div className="border border-gray-300 rounded-lg">
+            <CKEditorField
+              value={value || ''}
+              onChange={(content) => setValue(field.name, content)}
+            />
           </div>
         );
 
