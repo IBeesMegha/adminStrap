@@ -4,6 +4,7 @@ import { findUniqueDynamic, updateDynamic, deleteDynamic } from '@/lib/dynamic-p
 import { ApiResponse, Field } from '@/lib/types';
 import { filterVirtualRelationFields } from '@/lib/relation-engine';
 import { populateComponents, createComponentEntry } from '@/lib/component-populate';
+import { populateRelations } from '@/lib/relation-populate';
 
 export default async function handler(
   req: NextApiRequest,
@@ -67,13 +68,15 @@ export default async function handler(
 
       console.log('[API GET] Converted entry:', convertedEntry);
 
+      // ALWAYS populate relations automatically
+      let finalEntry = await populateRelations(convertedEntry, name, fields);
+
       // Populate components if requested
       if (populate === 'true') {
-        const populatedEntry = await populateComponents(convertedEntry, fields);
-        return res.status(200).json({ data: populatedEntry });
+        finalEntry = await populateComponents(finalEntry, fields);
       }
 
-      return res.status(200).json({ data: convertedEntry });
+      return res.status(200).json({ data: finalEntry });
     }
 
     if (req.method === 'PUT') {
@@ -92,20 +95,27 @@ export default async function handler(
       // (e.g., profile_img -> profileImg)
       const convertedData: Record<string, any> = {};
       Object.keys(entryData).forEach(key => {
-        // Sanitize the field name to match database column name
-        const sanitizedKey = key
-          .replace(/[\s-]+/g, '_')
-          .replace(/[^a-zA-Z0-9_]/g, '')
-          .split('_')
-          .filter(part => part.length > 0)
-          .map((part, index) => 
-            index === 0 ? part.toLowerCase() : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-          )
-          .join('');
-        
-        convertedData[sanitizedKey] = entryData[key];
-        if (sanitizedKey !== key) {
-          console.log(`[API PUT] Converted field name: ${key} -> ${sanitizedKey}`);
+        // If the key ends with 'Id', it's already a FK field in correct format from the form
+        // Don't re-sanitize it to avoid breaking camelCase (e.g., blogCateId -> blogcateid)
+        if (key.endsWith('Id')) {
+          convertedData[key] = entryData[key];
+          console.log(`[API PUT] FK field kept as-is: ${key}`);
+        } else {
+          // Sanitize the field name to match database column name
+          const sanitizedKey = key
+            .replace(/[\s-]+/g, '_')
+            .replace(/[^a-zA-Z0-9_]/g, '')
+            .split('_')
+            .filter(part => part.length > 0)
+            .map((part, index) => 
+              index === 0 ? part.toLowerCase() : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+            )
+            .join('');
+          
+          convertedData[sanitizedKey] = entryData[key];
+          if (sanitizedKey !== key) {
+            console.log(`[API PUT] Converted field name: ${key} -> ${sanitizedKey}`);
+          }
         }
       });
 
