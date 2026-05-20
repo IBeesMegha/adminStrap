@@ -166,12 +166,31 @@ Open [http://localhost:3000/admin](http://localhost:3000/admin)
 
 ## 🗄️ Database Schema
 
-### Prisma Models
+### Dynamic Schema Architecture
+
+This CMS uses a **metadata-driven dynamic schema** approach:
+
+- **Core tables** (CollectionType, SingleType, Component, Media) are always present
+- **Dynamic tables** (e.g., Blogs, Products) are generated automatically when you create collection types
+- Tables are **NOT hardcoded** in the schema - they're created from metadata stored in the `CollectionType` table
+
+#### Fresh Clone Behavior
+When you clone this project with a fresh database:
+- ✅ Core metadata tables are created
+- ✅ `CollectionType` table is empty
+- ✅ **No dynamic tables exist yet** (Blogs, News, etc.)
+- ✅ Clean starting point with no orphaned tables
+
+Dynamic tables are created **only when** you define collection types through the admin UI or API.
+
+📖 **For detailed information**, see [DYNAMIC_SCHEMA_GUIDE.md](./DYNAMIC_SCHEMA_GUIDE.md)
+
+### Core Prisma Models
 
 **CollectionType**: Stores collection type definitions
 - `id`, `name`, `displayName`, `description`
 - `fields`: JSON schema for fields
-- `entries`: Related collection entries
+- Drives dynamic table generation
 
 **SingleType**: Stores single type definitions
 - `id`, `name`, `displayName`, `description`
@@ -182,10 +201,27 @@ Open [http://localhost:3000/admin](http://localhost:3000/admin)
 - `id`, `name`, `displayName`, `category`
 - `fields`: JSON schema for fields
 
-**CollectionEntry**: Stores actual collection entries
-- `id`, `collectionTypeId`, `data` (JSON)
-- `published`: Boolean status
-- `createdAt`, `updatedAt`
+**Media**: Media library files
+- `id`, `name`, `url`, `mime`, `size`
+- `alternativeText`, `caption`
+- `width`, `height`, `ext`
+
+### Dynamic Models (Generated)
+
+Dynamic models are created automatically when you define collection types. For example, creating a "Blog" collection type generates:
+
+```prisma
+model Blogs {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  // ... your custom fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("blogs")
+}
+```
 
 ## 🔌 API Routes
 

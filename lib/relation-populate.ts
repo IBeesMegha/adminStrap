@@ -119,8 +119,11 @@ export async function populateRelations(
       }
     } catch (error) {
       console.error(`[Relation Populate] Error populating field ${field.name}:`, error);
-      // Keep original value on error
-      populatedEntry[field.name] = fieldValue;
+      // Keep original value on error - use the FK value if available
+      const fkFieldName = `${sanitizedFieldName}Id`;
+      if (entry[fkFieldName]) {
+        populatedEntry[sanitizedFieldName] = entry[fkFieldName];
+      }
     }
   }
 

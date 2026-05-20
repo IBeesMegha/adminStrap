@@ -33,15 +33,64 @@ export default function EditCollectionEntry() {
       
       // Format dates for HTML date inputs (YYYY-MM-DD)
       // Also handle JSON fields for media
+      // Also handle relation fields - extract IDs from populated objects
       const formattedEntry = { ...entryData.data };
       const fields = (typeData.data.fields as any)?.fields || [];
+      
+      console.log('[Edit Page] Raw entry data:', entryData.data);
+      console.log('[Edit Page] Fields:', fields);
       
       Object.keys(formattedEntry).forEach(key => {
         const value = formattedEntry[key];
         const field = fields.find((f: any) => f.name === key);
         
+        // Handle relation fields
+        if (field && field.type === 'relation' && field.relation) {
+          console.log(`[Edit Page] Processing relation field: ${key}`, value);
+          
+          if (field.relation.type === 'manyToOne' || field.relation.type === 'oneToOne') {
+            // For manyToOne and oneToOne, extract the ID and set it to the FK field
+            if (typeof value === 'object' && value !== null && value.id) {
+              // The form expects the FK field (e.g., cateId)
+              const sanitizedFieldName = key
+                .replace(/[\s-]+/g, '_')
+                .replace(/[^a-zA-Z0-9_]/g, '')
+                .split('_')
+                .filter((part: string) => part.length > 0)
+                .map((part: string, index: number) => 
+                  index === 0 ? part.toLowerCase() : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+                )
+                .join('');
+              
+              const fkFieldName = `${sanitizedFieldName}Id`;
+              formattedEntry[fkFieldName] = value.id;
+              console.log(`[Edit Page] Set FK field ${fkFieldName} = ${value.id}`);
+              
+              // Keep the populated object for display purposes
+              formattedEntry[key] = value;
+            } else if (typeof value === 'string') {
+              // Already an ID, set it to the FK field
+              const sanitizedFieldName = key
+                .replace(/[\s-]+/g, '_')
+                .replace(/[^a-zA-Z0-9_]/g, '')
+                .split('_')
+                .filter((part: string) => part.length > 0)
+                .map((part: string, index: number) => 
+                  index === 0 ? part.toLowerCase() : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+                )
+                .join('');
+              
+              const fkFieldName = `${sanitizedFieldName}Id`;
+              formattedEntry[fkFieldName] = value;
+              console.log(`[Edit Page] Set FK field ${fkFieldName} = ${value} (from string)`);
+            }
+          } else if (field.relation.type === 'oneToMany') {
+            // For oneToMany, keep the populated array as-is for display
+            console.log(`[Edit Page] Keeping oneToMany field ${key} as-is`);
+          }
+        }
         // Handle media fields - ensure they're in the correct format
-        if (field && field.type === 'media') {
+        else if (field && field.type === 'media') {
           if (field.multiple) {
             // Multiple media - should be JSON string of array
             if (Array.isArray(value)) {
@@ -83,12 +132,35 @@ export default function EditCollectionEntry() {
     try {
       console.log('[Edit Form] Original data:', data);
       
+      // Get collection type fields to identify relation fields
+      const fields = collectionType?.fields?.fields || [];
+      
       const cleanedData: Record<string, any> = {};
       Object.keys(data).forEach(key => {
         const value = data[key];
-        // Only include non-empty values
-        // For arrays and objects (like JSON fields), check if they have content
-        if (value !== '' && value !== null && value !== undefined) {
+        
+        // Find if this is a relation FK field (ends with 'Id')
+        const isRelationFK = key.endsWith('Id') && fields.some((f: any) => {
+          if (f.type !== 'relation') return false;
+          const sanitizedName = f.name
+            .replace(/[\s-]+/g, '_')
+            .replace(/[^a-zA-Z0-9_]/g, '')
+            .split('_')
+            .filter((part: string) => part.length > 0)
+            .map((part: string, index: number) => 
+              index === 0 ? part.toLowerCase() : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+            )
+            .join('');
+          return `${sanitizedName}Id` === key;
+        });
+        
+        // For relation FK fields, explicitly set null if empty
+        if (isRelationFK && (value === '' || value === null || value === undefined)) {
+          cleanedData[key] = null;
+          console.log(`[Edit Form] Setting relation FK ${key} to null`);
+        }
+        // For other fields, only include non-empty values
+        else if (value !== '' && value !== null && value !== undefined) {
           cleanedData[key] = value;
         }
       });

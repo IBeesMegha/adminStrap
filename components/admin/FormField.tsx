@@ -9,6 +9,7 @@ import { MediaFieldController } from './MediaFieldController';
 import { Image as ImageIcon, Plus, X, Link as LinkIcon, Edit, Trash2, Settings } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Controller } from 'react-hook-form';
+import Link from 'next/link';
 
 const ReactQuill = dynamic(() => import('react-quill'), { 
   ssr: false,
@@ -271,7 +272,110 @@ export const FormField: React.FC<FormFieldProps> = ({
       case 'relation':
         if (!field.relation) return null;
         
-        const isMultiple = field.relation.type === 'oneToMany' || field.relation.type === 'manyToMany';
+        // For oneToMany relations, this is a virtual field managed from the other side
+        // Display it as a nice list with the ability to navigate to related items
+        if (field.relation.type === 'oneToMany') {
+          // Parse the value if it's populated (array of related objects)
+          const relatedItems = Array.isArray(value) ? value : [];
+          
+          return (
+            <div className="space-y-3">
+              <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+                {/* Header */}
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">
+                        {field.relation.targetCollectionDisplay} ({relatedItems.length})
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Managed from the {field.relation.targetCollectionDisplay} side
+                      </p>
+                    </div>
+                    <Link
+                      href={`/admin/collections/${field.relation.targetCollection}/new`}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      + Add new
+                    </Link>
+                  </div>
+                </div>
+
+                {/* List of related items */}
+                {relatedItems.length > 0 ? (
+                  <div className="divide-y divide-gray-100">
+                    {relatedItems.map((item: any, index: number) => {
+                      const displayName = item.name || item.title || item.displayName || item.id;
+                      const itemId = item.id;
+                      
+                      return (
+                        <div
+                          key={itemId || index}
+                          className="px-4 py-3 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3 flex-1 min-w-0">
+                              {/* Item icon/number */}
+                              <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <span className="text-xs font-medium text-blue-600">
+                                  {index + 1}
+                                </span>
+                              </div>
+                              
+                              {/* Item details */}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {displayName}
+                                </p>
+                                {item.slug && (
+                                  <p className="text-xs text-gray-500 truncate">
+                                    {item.slug}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center space-x-2 ml-4">
+                              <Link
+                                href={`/admin/collections/${field.relation.targetCollection}/${itemId}`}
+                                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                title="Edit"
+                              >
+                                <Edit size={16} />
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="px-4 py-8 text-center">
+                    <div className="inline-flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mb-3">
+                      <LinkIcon size={20} className="text-gray-400" />
+                    </div>
+                    <p className="text-sm text-gray-600 mb-1">
+                      No {field.relation.targetCollectionDisplay} linked yet
+                    </p>
+                    <p className="text-xs text-gray-500 mb-4">
+                      Create or edit {field.relation.targetCollectionDisplay} to link them to this entry
+                    </p>
+                    <Link
+                      href={`/admin/collections/${field.relation.targetCollection}/new`}
+                      className="inline-flex items-center space-x-1 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      <Plus size={16} />
+                      <span>Create {field.relation.targetCollectionDisplay}</span>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        }
+        
+        const isMultiple = field.relation.type === 'manyToMany';
         
         // For manyToOne and oneToOne relations, we need to save to the FK column
         // Convert field name to camelCase and append 'Id'
@@ -359,12 +463,21 @@ export const FormField: React.FC<FormFieldProps> = ({
     }
   };
 
+  // Check if this is a oneToMany relation (read-only display)
+  const isOneToManyRelation = field.type === 'relation' && field.relation?.type === 'oneToMany';
+
   return (
     <div className="space-y-2">
-      {field.type !== 'boolean' && field.type !== 'component' && field.type !== 'dynamiczone' && (
+      {field.type !== 'boolean' && field.type !== 'component' && field.type !== 'dynamiczone' && !isOneToManyRelation && (
         <label className="block text-sm font-medium text-gray-700">
           {field.displayName}
           {field.required && <span className="text-red-500 ml-1">*</span>}
+        </label>
+      )}
+      {isOneToManyRelation && (
+        <label className="block text-sm font-medium text-gray-700">
+          {field.displayName}
+          <span className="ml-2 text-xs font-normal text-gray-500">(Read-only)</span>
         </label>
       )}
       {renderField()}

@@ -192,8 +192,21 @@ model Component {
   displayName String
   category    String
   fields      Json
+  entries     ComponentEntry[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model ComponentEntry {
+  id          String    @id @default(cuid())
+  componentId String
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  data        Json
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([componentId])
+  @@map("component_entries")
 }
 
 // Media Library
@@ -208,6 +221,7 @@ model Media {
   width           Int?
   height          Int?
   ext             String
+  folder          String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

@@ -262,11 +262,34 @@ const SortableRow: React.FC<SortableRowProps> = ({ entry, index, name, fields, o
         return new Date(value).toLocaleDateString();
       
       case 'relation':
-        // For relations, show the ID or related data
-        if (typeof value === 'object' && value !== null) {
-          return value.name || value.displayName || value.id || JSON.stringify(value);
+        // For relations, show the related data in a nice format
+        if (Array.isArray(value)) {
+          // oneToMany relation - show count with tooltip
+          if (value.length === 0) {
+            return <span className="text-gray-400 text-xs">No items</span>;
+          }
+          return (
+            <div className="flex items-center space-x-1">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {value.length} {value.length === 1 ? 'item' : 'items'}
+              </span>
+            </div>
+          );
+        } else if (typeof value === 'object' && value !== null) {
+          // manyToOne or oneToOne relation - show name
+          const displayName = value.name || value.title || value.displayName || value.id;
+          return (
+            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
+              {displayName}
+            </span>
+          );
+        } else if (value) {
+          // Just an ID
+          return (
+            <span className="text-gray-500 text-xs font-mono">{value}</span>
+          );
         }
-        return value;
+        return <span className="text-gray-400 text-xs">—</span>;
       
       case 'json':
         if (typeof value === 'object') {

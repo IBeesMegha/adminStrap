@@ -30,13 +30,26 @@ model SingleType {
 }
 
 model Component {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String           @id @default(cuid())
+  name        String           @unique
   displayName String
   category    String
   fields      Json
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  entries     ComponentEntry[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model ComponentEntry {
+  id          String    @id @default(cuid())
+  componentId String
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  data        Json
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([componentId])
+  @@map("component_entries")
 }
 
 // Media Library
@@ -51,6 +64,7 @@ model Media {
   width           Int?
   height          Int?
   ext             String
+  folder          String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -58,51 +72,5 @@ model Media {
 }
 
 // Dynamic Collection Types
-
-model Blogs {
-  id         String    @id @default(cuid())
-  name       String?
-  content    String?
-  thumb      Json?
-  cktest     String?
-  blogCateId String?
-  blogCate   BlogCate? @relation("BlogsToBlogCate", fields: [blogCateId], references: [id])
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-
-  @@map("blogs")
-}
-
-model BlogCate {
-  id        String   @id @default(cuid())
-  name      String?
-  desc      String?
-  blogss    Blogs[]  @relation("BlogsToBlogCate")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("blog_cate")
-}
-
-model News {
-  id         String    @id @default(cuid())
-  name       String?
-  desc       String?
-  newsCateId String?
-  newsCate   NewsCate? @relation("NewsToNewsCate", fields: [newsCateId], references: [id])
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-
-  @@map("news")
-}
-
-model NewsCate {
-  id        String   @id @default(cuid())
-  name      String?
-  email     String?
-  newss     News[]   @relation("NewsToNewsCate")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("news_cate")
-}
+// Note: Collection type tables are created dynamically at runtime
+// Do not add hardcoded models here - they should only exist in CollectionType table
