@@ -4,6 +4,7 @@ import { DynamicForm } from '@/components/admin/DynamicForm';
 import { useRouter } from 'next/router';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 export default function EditCollectionEntry() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function EditCollectionEntry() {
   const [collectionType, setCollectionType] = useState<any>(null);
   const [entry, setEntry] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [serverError, setServerError] = useState<{ field: string; message: string } | null>(null);
 
   useEffect(() => {
     if (name && id) {
@@ -129,6 +131,9 @@ export default function EditCollectionEntry() {
   };
 
   const handleSubmit = async (data: Record<string, any>) => {
+    const toastId = toast.loading('Updating entry...');
+    setServerError(null); // Clear previous errors
+    
     try {
       console.log('[Edit Form] Original data:', data);
       
@@ -174,19 +179,42 @@ export default function EditCollectionEntry() {
       });
 
       if (response.ok) {
-        alert('Entry updated successfully!');
+        toast.success('Entry updated successfully!', { id: toastId });
         router.push(`/admin/collections/${name}`);
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error}`);
+        const errorMessage = error.error || 'Failed to update entry';
+        
+        // Check if error is about a unique field
+        const uniqueFieldMatch = errorMessage.match(/This (.+?) already exists/);
+        if (uniqueFieldMatch) {
+          const fieldDisplayName = uniqueFieldMatch[1];
+          // Find the field by display name
+          const field = collectionType?.fields?.fields?.find(
+            (f: any) => f.displayName === fieldDisplayName
+          );
+          
+          if (field) {
+            setServerError({
+              field: field.name,
+              message: errorMessage
+            });
+            toast.error('Please fix the errors below', { id: toastId });
+            return;
+          }
+        }
+        
+        toast.error(errorMessage, { id: toastId });
       }
     } catch (error) {
       console.error('Error updating entry:', error);
-      alert('Failed to update entry');
+      toast.error('Failed to update entry', { id: toastId });
     }
   };
 
   const handlePublish = async () => {
+    const toastId = toast.loading(entry.published ? 'Unpublishing...' : 'Publishing...');
+    
     try {
       // Extract only the field data (exclude metadata)
       const fieldNames = collectionType.fields.fields.map((f: any) => f.name);
@@ -205,9 +233,13 @@ export default function EditCollectionEntry() {
 
       if (response.ok) {
         setEntry({ ...entry, published: !entry.published });
+        toast.success(entry.published ? 'Entry unpublished!' : 'Entry published!', { id: toastId });
+      } else {
+        toast.error('Failed to update publish status', { id: toastId });
       }
     } catch (error) {
       console.error('Error toggling publish:', error);
+      toast.error('Failed to update publish status', { id: toastId });
     }
   };
 
@@ -264,6 +296,7 @@ export default function EditCollectionEntry() {
             submitLabel="Update Entry"
             collectionName={name as string}
             entryId={id as string}
+            serverError={serverError}
           />
         </div>
       </div>

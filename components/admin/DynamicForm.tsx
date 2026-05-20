@@ -11,6 +11,7 @@ interface DynamicFormProps {
   submitLabel?: string;
   collectionName?: string;
   entryId?: string;
+  serverError?: { field: string; message: string } | null;
 }
 
 export const DynamicForm: React.FC<DynamicFormProps> = ({
@@ -20,9 +21,9 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   submitLabel = 'Save',
   collectionName,
   entryId,
+  serverError,
 }) => {
   const schema = createValidationSchema(fields);
-  const [validationErrors, setValidationErrors] = React.useState<Record<string, string>>({});
 
   const {
     register,
@@ -38,6 +39,16 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     resolver: zodResolver(schema),
     defaultValues: defaultValues || {},
   });
+
+  // Set server error when it changes
+  useEffect(() => {
+    if (serverError) {
+      setError(serverError.field, {
+        type: 'server',
+        message: serverError.message,
+      });
+    }
+  }, [serverError, setError]);
 
   // Log all form values before submit
   const onSubmitWrapper = async (data: Record<string, any>) => {
@@ -58,49 +69,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     const mergedData = { ...allValues, ...data };
     console.log('[DynamicForm] Merged data:', mergedData);
     
-    // Check for unique field violations
-    if (collectionName) {
-      const uniqueFields = fields.filter(f => f.unique);
-      
-      for (const field of uniqueFields) {
-        const fieldValue = mergedData[field.name];
-        
-        if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
-          try {
-            const response = await fetch(`/api/collections/${collectionName}`);
-            const result = await response.json();
-            
-            if (result.data) {
-              const existingEntry = result.data.find((entry: any) => {
-                // Skip checking against the current entry when editing
-                if (entryId && entry.id === entryId) {
-                  return false;
-                }
-                return entry[field.name] === fieldValue;
-              });
-              
-              if (existingEntry) {
-                setError(field.name, {
-                  type: 'manual',
-                  message: `This ${field.displayName} already exists. The field "${field.displayName}" must be unique.`
-                });
-                setValidationErrors(prev => ({
-                  ...prev,
-                  [field.name]: `This ${field.displayName} already exists. The field "${field.displayName}" must be unique.`
-                }));
-                return; // Stop submission
-              }
-            }
-          } catch (error) {
-            console.error(`Error checking unique field ${field.name}:`, error);
-          }
-        }
-      }
-    }
-    
-    // Clear validation errors if all checks passed
-    setValidationErrors({});
-    onSubmit(mergedData);
+    // Call onSubmit and let parent handle the response
+    await onSubmit(mergedData);
   };
 
   // Reset form when defaultValues change (for edit forms)

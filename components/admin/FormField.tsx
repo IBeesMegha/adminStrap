@@ -150,7 +150,9 @@ export const FormField: React.FC<FormFieldProps> = ({
           <input
             type={field.type === 'email' ? 'email' : 'text'}
             {...register(field.name)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              error ? 'border-red-500' : 'border-gray-300'
+            }`}
             placeholder={`Enter ${field.displayName.toLowerCase()}`}
           />
         );
@@ -160,14 +162,16 @@ export const FormField: React.FC<FormFieldProps> = ({
           <textarea
             {...register(field.name)}
             rows={4}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              error ? 'border-red-500' : 'border-gray-300'
+            }`}
             placeholder={`Enter ${field.displayName.toLowerCase()}`}
           />
         );
 
       case 'richtext':
         return (
-          <div className="border border-gray-300 rounded-lg">
+          <div className={`border rounded-lg ${error ? 'border-red-500' : 'border-gray-300'}`}>
             {typeof window !== 'undefined' && (
               <ReactQuill
                 theme="snow"
@@ -181,7 +185,7 @@ export const FormField: React.FC<FormFieldProps> = ({
 
       case 'richtext-ckeditor':
         return (
-          <div className="border border-gray-300 rounded-lg">
+          <div className={`border rounded-lg ${error ? 'border-red-500' : 'border-gray-300'}`}>
             <CKEditorField
               value={value || ''}
               onChange={(content) => setValue(field.name, content)}
@@ -193,8 +197,13 @@ export const FormField: React.FC<FormFieldProps> = ({
         return (
           <input
             type="number"
-            {...register(field.name, { valueAsNumber: true })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            {...register(field.name, { 
+              valueAsNumber: true,
+              setValueAs: (v) => v === '' ? undefined : Number(v)
+            })}
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              error ? 'border-red-500' : 'border-gray-300'
+            }`}
             placeholder={`Enter ${field.displayName.toLowerCase()}`}
           />
         );
@@ -218,7 +227,9 @@ export const FormField: React.FC<FormFieldProps> = ({
           <input
             type="date"
             {...register(field.name)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              error ? 'border-red-500' : 'border-gray-300'
+            }`}
           />
         );
 
@@ -227,7 +238,9 @@ export const FormField: React.FC<FormFieldProps> = ({
           <textarea
             {...register(field.name)}
             rows={6}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={`w-full px-4 py-2 border rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              error ? 'border-red-500' : 'border-gray-300'
+            }`}
             placeholder='{"key": "value"}'
           />
         );
@@ -293,7 +306,7 @@ export const FormField: React.FC<FormFieldProps> = ({
                       </p>
                     </div>
                     <Link
-                      href={`/admin/collections/${field.relation.targetCollection}/new`}
+                      href={`/admin/collections/${field.relation?.targetCollection}/new`}
                       className="text-xs text-blue-600 hover:text-blue-800 font-medium"
                     >
                       + Add new
@@ -338,7 +351,7 @@ export const FormField: React.FC<FormFieldProps> = ({
                             {/* Actions */}
                             <div className="flex items-center space-x-2 ml-4">
                               <Link
-                                href={`/admin/collections/${field.relation.targetCollection}/${itemId}`}
+                                href={`/admin/collections/${field.relation?.targetCollection}/${itemId}`}
                                 className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                                 title="Edit"
                               >
@@ -432,7 +445,9 @@ export const FormField: React.FC<FormFieldProps> = ({
                   <select
                     {...register(fieldNameToRegister)}
                     onChange={handleSelectChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      error ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   >
                     <option value="">Select {field.relation.targetCollectionDisplay}</option>
                     {relationOptions.map((option) => (
@@ -481,8 +496,10 @@ export const FormField: React.FC<FormFieldProps> = ({
         </label>
       )}
       {renderField()}
-      {error && field.type !== 'component' && field.type !== 'dynamiczone' && (
-        <p className="text-sm text-red-600">{error.message}</p>
+      {error && (
+        <p className="text-sm text-red-600 mt-1">
+          {error.message || `${field.displayName} is required`}
+        </p>
       )}
     </div>
   );

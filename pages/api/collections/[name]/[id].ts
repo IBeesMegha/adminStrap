@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
-import { findUniqueDynamic, updateDynamic, deleteDynamic } from '@/lib/dynamic-prisma';
+import { findUniqueDynamic, findManyDynamic, updateDynamic, deleteDynamic } from '@/lib/dynamic-prisma';
 import { ApiResponse, Field } from '@/lib/types';
 import { filterVirtualRelationFields } from '@/lib/relation-engine';
 import { populateComponents, createComponentEntry } from '@/lib/component-populate';
@@ -120,6 +120,40 @@ export default async function handler(
       });
 
       console.log('[API PUT] Converted data:', convertedData);
+
+      // Check for unique field violations (excluding current entry)
+      for (const field of fields) {
+        if (field.unique && convertedData[field.name] !== undefined && convertedData[field.name] !== null && convertedData[field.name] !== '') {
+          const sanitizedFieldName = field.name
+            .replace(/[\s-]+/g, '_')
+            .replace(/[^a-zA-Z0-9_]/g, '')
+            .split('_')
+            .filter((part: string) => part.length > 0)
+            .map((part: string, index: number) => 
+              index === 0 ? part.toLowerCase() : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+            )
+            .join('');
+
+          console.log(`[API PUT] Checking uniqueness for field: ${field.name} (sanitized: ${sanitizedFieldName}), value: ${convertedData[sanitizedFieldName]}`);
+
+          const existingEntries = await findManyDynamic(name, {
+            where: {
+              [sanitizedFieldName]: convertedData[sanitizedFieldName]
+            }
+          }) as any[];
+
+          console.log(`[API PUT] Found ${existingEntries.length} existing entries with same value`);
+
+          // Check if any existing entry has the same value (excluding current entry being updated)
+          const duplicateEntry = existingEntries.find((entry: any) => entry.id !== id);
+          if (duplicateEntry) {
+            console.log(`[API PUT] Duplicate found: entry ${duplicateEntry.id} has same ${field.displayName}`);
+            return res.status(400).json({ 
+              error: `This ${field.displayName} already exists. The field "${field.displayName}" must be unique.` 
+            });
+          }
+        }
+      }
 
       // Process component fields - create component entries if needed
       const processedData = await processComponentFields(convertedData, fields);

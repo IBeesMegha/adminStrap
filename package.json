@@ -26,6 +26,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.50.1",
+    "react-hot-toast": "^2.6.0",
     "react-quill": "^2.0.0",
     "zod": "^3.22.4"
   },

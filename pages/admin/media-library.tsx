@@ -3,6 +3,7 @@ import { Layout } from '@/components/admin/Layout';
 import { MediaAsset, mediaApi } from '@/lib/media';
 import { Upload, Image as ImageIcon, Trash2, Edit, Search, Grid, List, Folder, FolderPlus, ChevronRight } from 'lucide-react';
 import { MediaLibraryModal } from '@/components/admin/MediaLibraryModal';
+import toast from 'react-hot-toast';
 
 export default function MediaLibraryPage() {
   const [media, setMedia] = useState<MediaAsset[]>([]);
@@ -28,6 +29,7 @@ export default function MediaLibraryPage() {
       setMedia(assets);
     } catch (error) {
       console.error('Failed to load media:', error);
+      toast.error('Failed to load media');
     } finally {
       setLoading(false);
     }
@@ -38,17 +40,22 @@ export default function MediaLibraryPage() {
       return;
     }
 
+    const toastId = toast.loading('Deleting media...');
+
     try {
       await mediaApi.delete(id);
       await loadMedia();
+      toast.success('Media deleted successfully!', { id: toastId });
     } catch (error) {
       console.error('Failed to delete media:', error);
-      alert('Failed to delete media');
+      toast.error('Failed to delete media', { id: toastId });
     }
   };
 
   const handleCreateFolder = async () => {
     if (newFolderName.trim()) {
+      const toastId = toast.loading('Creating folder...');
+      
       try {
         const folderPath = currentFolder 
           ? `${currentFolder}/${newFolderName.trim()}`
@@ -71,9 +78,10 @@ export default function MediaLibraryPage() {
         
         // Reload media to refresh folder list
         await loadMedia();
+        toast.success('Folder created successfully!', { id: toastId });
       } catch (error) {
         console.error('Error creating folder:', error);
-        alert('Failed to create folder');
+        toast.error('Failed to create folder', { id: toastId });
       }
     }
   };
@@ -435,13 +443,15 @@ export default function MediaLibraryPage() {
           media={selectedMedia}
           onClose={() => setSelectedMedia(null)}
           onSave={async (updated) => {
+            const toastId = toast.loading('Updating media...');
             try {
               await mediaApi.update(selectedMedia.id, updated);
               await loadMedia();
               setSelectedMedia(null);
+              toast.success('Media updated successfully!', { id: toastId });
             } catch (error) {
               console.error('Failed to update media:', error);
-              alert('Failed to update media');
+              toast.error('Failed to update media', { id: toastId });
             }
           }}
         />

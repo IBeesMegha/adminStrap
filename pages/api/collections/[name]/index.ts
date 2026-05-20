@@ -124,13 +124,18 @@ export default async function handler(
             )
             .join('');
 
+          console.log(`[API POST] Checking uniqueness for field: ${field.name} (sanitized: ${sanitizedFieldName}), value: ${convertedData[sanitizedFieldName]}`);
+
           const existingEntry = await findManyDynamic(name, {
             where: {
               [sanitizedFieldName]: convertedData[sanitizedFieldName]
             }
           }) as any[];
 
+          console.log(`[API POST] Found ${existingEntry.length} existing entries with same value`);
+
           if (existingEntry && existingEntry.length > 0) {
+            console.log(`[API POST] Duplicate found: entry ${existingEntry[0].id} has same ${field.displayName}`);
             return res.status(400).json({ 
               error: `This ${field.displayName} already exists. The field "${field.displayName}" must be unique.` 
             });

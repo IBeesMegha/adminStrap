@@ -111,7 +111,7 @@ export const AddFieldModal: React.FC<AddFieldModalProps> = ({
       displayName: fieldName,
       type: fieldType === 'text' && textType === 'long' ? 'text' : (fieldType as FieldType),
       required,
-      unique: unique || isUid, // If UID is checked, unique is automatically true
+      unique: unique || isUid || fieldType === 'uid', // If UID is checked or field type is UID, unique is automatically true
       // Add multiple property for media fields
       ...(fieldType === 'media' && { multiple: mediaType === 'multiple' }),
     };

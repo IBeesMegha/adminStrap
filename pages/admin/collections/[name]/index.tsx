@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { Plus, Edit, Trash2, GripVertical, X, Settings, Download, FileSpreadsheet } from 'lucide-react';
 import { ColumnConfigModal } from '@/components/admin/ColumnConfigModal';
+import toast from 'react-hot-toast';
 import {
   DndContext,
   closestCenter,
@@ -642,6 +643,8 @@ export default function CollectionList() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this entry?')) return;
 
+    const toastId = toast.loading('Deleting entry...');
+    
     try {
       const response = await fetch(`/api/collections/${name}/${id}`, {
         method: 'DELETE',
@@ -649,12 +652,13 @@ export default function CollectionList() {
 
       if (response.ok) {
         setEntries(entries.filter((e) => e.id !== id));
+        toast.success('Entry deleted successfully!', { id: toastId });
       } else {
-        alert('Failed to delete entry');
+        toast.error('Failed to delete entry', { id: toastId });
       }
     } catch (error) {
       console.error('Error deleting entry:', error);
-      alert('Failed to delete entry');
+      toast.error('Failed to delete entry', { id: toastId });
     }
   };
 
@@ -683,13 +687,15 @@ export default function CollectionList() {
 
   const handleBulkDelete = async () => {
     if (selectedEntries.size === 0) {
-      alert('Please select entries to delete');
+      toast.error('Please select entries to delete');
       return;
     }
 
     if (!confirm(`Are you sure you want to delete ${selectedEntries.size} entries?`)) {
       return;
     }
+
+    const toastId = toast.loading(`Deleting ${selectedEntries.size} entries...`);
 
     try {
       const deletePromises = Array.from(selectedEntries).map(id =>
@@ -702,20 +708,20 @@ export default function CollectionList() {
       if (successCount === selectedEntries.size) {
         setEntries(entries.filter(e => !selectedEntries.has(e.id)));
         setSelectedEntries(new Set());
-        alert(`Successfully deleted ${successCount} entries`);
+        toast.success(`Successfully deleted ${successCount} entries`, { id: toastId });
       } else {
-        alert(`Deleted ${successCount} out of ${selectedEntries.size} entries`);
+        toast.warning(`Deleted ${successCount} out of ${selectedEntries.size} entries`, { id: toastId });
         fetchData(); // Refresh to get current state
       }
     } catch (error) {
       console.error('Error deleting entries:', error);
-      alert('Failed to delete entries');
+      toast.error('Failed to delete entries', { id: toastId });
     }
   };
 
   const exportToCSV = (data: any[]) => {
     if (data.length === 0) {
-      alert('No data to export');
+      toast.error('No data to export');
       return;
     }
 
@@ -772,11 +778,13 @@ export default function CollectionList() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
+    toast.success(`Exported ${data.length} entries to CSV`);
   };
 
   const exportToExcel = (data: any[]) => {
     if (data.length === 0) {
-      alert('No data to export');
+      toast.error('No data to export');
       return;
     }
 
@@ -835,6 +843,8 @@ export default function CollectionList() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
+    toast.success(`Exported ${data.length} entries to Excel`);
   };
 
   const handleExport = (format: 'csv' | 'excel', scope: 'selected' | 'all') => {
@@ -842,7 +852,7 @@ export default function CollectionList() {
     
     if (scope === 'selected') {
       if (selectedEntries.size === 0) {
-        alert('Please select entries to export');
+        toast.error('Please select entries to export');
         return;
       }
       dataToExport = entries.filter(e => selectedEntries.has(e.id));

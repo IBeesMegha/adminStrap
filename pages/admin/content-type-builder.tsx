@@ -10,6 +10,7 @@ import { AddRelationModal } from '@/components/admin/AddRelationModal';
 import { AddComponentFieldModal } from '@/components/admin/AddComponentFieldModal';
 import { AddDynamicZoneModal } from '@/components/admin/AddDynamicZoneModal';
 import { MigrationModal } from '@/components/admin/MigrationModal';
+import toast from 'react-hot-toast';
 
 export default function ContentTypeBuilder() {
   const router = useRouter();
@@ -92,12 +93,12 @@ export default function ContentTypeBuilder() {
           }
         });
       } else {
-        alert('Failed to load content type');
+        toast.error('Failed to load content type');
         router.push('/admin/content-type-builder');
       }
     } catch (error) {
       console.error('Error loading content type:', error);
-      alert('Failed to load content type');
+      toast.error('Failed to load content type');
       router.push('/admin/content-type-builder');
     } finally {
       setIsLoading(false);
@@ -381,12 +382,12 @@ export default function ContentTypeBuilder() {
 
   const handleSave = async () => {
     if (!contentType.name || !contentType.displayName) {
-      alert('Please create a content type first');
+      toast.error('Please create a content type first');
       return;
     }
 
     if (fields.length === 0) {
-      alert('Please add at least one field');
+      toast.error('Please add at least one field');
       return;
     }
 
@@ -448,6 +449,12 @@ export default function ContentTypeBuilder() {
             : `Table "${contentType.displayName}" has been created successfully!`,
         });
 
+        toast.success(
+          isEditing
+            ? `"${contentType.displayName}" updated successfully!`
+            : `"${contentType.displayName}" created successfully!`
+        );
+
         // Wait 2 seconds then redirect
         setTimeout(() => {
           if (type === 'component') {
@@ -463,6 +470,7 @@ export default function ContentTypeBuilder() {
           message: isEditing ? 'Failed to update content type' : 'Failed to create content type',
           error: result.error || 'Unknown error occurred',
         });
+        toast.error(result.error || 'Failed to save content type');
       }
     } catch (error: any) {
       console.error('Error saving content type:', error);
@@ -472,6 +480,7 @@ export default function ContentTypeBuilder() {
         message: isEditing ? 'Failed to update content type' : 'Failed to create content type',
         error: error.message || 'Network error occurred',
       });
+      toast.error(error.message || 'Network error occurred');
     } finally {
       setIsSaving(false);
     }

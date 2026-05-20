@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Layout } from '@/components/admin/Layout';
 import { DynamicForm } from '@/components/admin/DynamicForm';
 import { useRouter } from 'next/router';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 export default function NewCollectionEntry() {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function NewCollectionEntry() {
 
   const [collectionType, setCollectionType] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [serverError, setServerError] = useState<{ field: string; message: string } | null>(null);
 
   const fetchCollectionType = async () => {
     try {
@@ -31,6 +33,9 @@ export default function NewCollectionEntry() {
   }, [name]);
 
   const handleSubmit = async (data: Record<string, any>) => {
+    const toastId = toast.loading('Creating entry...');
+    setServerError(null); // Clear previous errors
+    
     try {
       // Remove empty strings and convert them to undefined (will be filtered out)
       const cleanedData: Record<string, any> = {};
@@ -52,14 +57,36 @@ export default function NewCollectionEntry() {
       });
 
       if (response.ok) {
+        toast.success('Entry created successfully!', { id: toastId });
         router.push(`/admin/collections/${name}`);
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error}`);
+        const errorMessage = error.error || 'Failed to create entry';
+        
+        // Check if error is about a unique field
+        const uniqueFieldMatch = errorMessage.match(/This (.+?) already exists/);
+        if (uniqueFieldMatch) {
+          const fieldDisplayName = uniqueFieldMatch[1];
+          // Find the field by display name
+          const field = collectionType?.fields?.fields?.find(
+            (f: any) => f.displayName === fieldDisplayName
+          );
+          
+          if (field) {
+            setServerError({
+              field: field.name,
+              message: errorMessage
+            });
+            toast.error('Please fix the errors below', { id: toastId });
+            return;
+          }
+        }
+        
+        toast.error(errorMessage, { id: toastId });
       }
     } catch (error) {
       console.error('Error creating entry:', error);
-      alert('Failed to create entry');
+      toast.error('Failed to create entry', { id: toastId });
     }
   };
 
@@ -100,6 +127,7 @@ export default function NewCollectionEntry() {
             onSubmit={handleSubmit}
             submitLabel="Create Entry"
             collectionName={name as string}
+            serverError={serverError}
           />
         </div>
       </div>
