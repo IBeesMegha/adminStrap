@@ -1,13 +1,19 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
 import { ApiResponse } from '@/lib/types';
-import { synchronizeRelations } from '@/lib/relation-engine';
-import { regenerateSchema } from '@/lib/schema-sync';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { createDynamicTable, tableExists, syncTableSchema } from '@/lib/dynamic-table-service';
+import { createRelation } from '@/lib/relation-metadata';
 
-const execAsync = promisify(exec);
-
+/**
+ * Collection Types API - Manages dynamic content type definitions
+ * 
+ * NEW ARCHITECTURE:
+ * - CollectionType metadata is stored in Prisma-managed table
+ * - Actual content tables are created via raw SQL at runtime
+ * - Relations are metadata-driven with automatic inverse generation
+ * - NO Prisma schema modifications
+ * - NO migrations needed for content tables
+ */
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ApiResponse>
@@ -29,71 +35,81 @@ export default async function handler(
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
+      const normalizedName = name.toLowerCase().replace(/\s+/g, '-');
       let collectionType;
 
       try {
-        console.log(`\n=== Creating collection: ${name} ===`);
+        console.log(`\n=== Creating collection: ${normalizedName} ===`);
         
-        // 1. Create collection type metadata
-        console.log('Step 1: Creating collection metadata...');
+        // 1. Check if table already exists
+        console.log('Step 1: Checking if table exists...');
+        if (await tableExists(normalizedName)) {
+          return res.status(400).json({ 
+            error: `Table for collection "${normalizedName}" already exists` 
+          });
+        }
+        console.log('✓ Table does not exist, proceeding...');
+
+        // 2. Create collection type metadata (WITHOUT relation fields first)
+        console.log('Step 2: Creating collection metadata...');
+        const nonRelationFields = (fields.fields || []).filter((f: any) => f.type !== 'relation');
+        
         collectionType = await prisma.collectionType.create({
           data: {
-            name: name.toLowerCase().replace(/\s+/g, '-'),
+            name: normalizedName,
             displayName,
             description,
-            fields,
+            fields: {
+              fields: nonRelationFields
+            },
           },
         });
         console.log('✓ Metadata created');
 
-        // 2. Synchronize relations (add opposite fields to target collections)
-        console.log('Step 2: Synchronizing relations...');
-        await synchronizeRelations(collectionType.name, fields.fields);
-        console.log('✓ Relations synchronized');
+        // 3. Create dynamic table via raw SQL (only non-relation fields)
+        console.log('Step 3: Creating dynamic table via raw SQL...');
+        await createDynamicTable(normalizedName, nonRelationFields);
+        console.log('✓ Dynamic table created');
 
-        // 3. Regenerate complete Prisma schema
-        console.log('Step 3: Regenerating Prisma schema...');
-        await regenerateSchema();
-        console.log('✓ Schema regenerated');
-
-        // 4. Format schema (optional, don't fail if it errors)
-        console.log('Step 4: Formatting schema...');
-        try {
-          await execAsync('npx prisma format', {
-            windowsHide: true,
-            timeout: 30000,
-          });
-          console.log('✓ Schema formatted');
-        } catch (formatError) {
-          console.warn('⚠ Schema formatting skipped (non-critical)');
-        }
-
-        // 5. Push schema to database (NO CLIENT GENERATION)
-        console.log('Step 5: Pushing schema to database...');
-        try {
-          const { stdout, stderr } = await execAsync('npx prisma db push --skip-generate --accept-data-loss', {
-            windowsHide: true,
-            timeout: 120000,
-          });
-          
-          if (stderr && !stderr.includes('warnings')) {
-            console.warn('⚠ Push warnings:', stderr);
+        // 4. Process relation fields and create inverse relations
+        console.log('Step 4: Processing relations...');
+        const relationFields = (fields.fields || []).filter((f: any) => f.type === 'relation');
+        
+        for (const relationField of relationFields) {
+          try {
+            await createRelation({
+              sourceCollection: normalizedName,
+              sourceField: relationField.name,
+              targetCollection: relationField.relation.targetCollection,
+              relationType: relationField.relation.type,
+              displayName: relationField.displayName
+            });
+            console.log(`✓ Created relation: ${relationField.name}`);
+          } catch (error: any) {
+            console.error(`✗ Failed to create relation ${relationField.name}:`, error.message);
           }
-          
-          console.log('✓ Schema pushed to database');
-        } catch (pushError: any) {
-          console.error('✗ Push error:', pushError.message);
-          throw new Error(`Failed to push schema to database: ${pushError.message}`);
         }
 
-        console.log(`\n✓ Collection ${name} created successfully!\n`);
-        console.log('⚠️  IMPORTANT: Please restart your dev server to use the updated Prisma Client');
-        console.log('   Press Ctrl+C in terminal, then run: npm run dev\n');
+        // 5. Sync table schema to add FK columns for owned relations
+        if (relationFields.length > 0) {
+          console.log('Step 5: Syncing table schema for FK columns...');
+          const allFields = await getCollectionFields(normalizedName);
+          await syncTableSchema(normalizedName, allFields);
+          console.log('✓ Table schema synced');
+        }
+
+        console.log(`\n✓ Collection ${normalizedName} created successfully!`);
+        console.log('✓ No server restart needed - table is ready to use\n');
+        
+        // Get updated collection with all fields
+        const updatedCollection = await prisma.collectionType.findUnique({
+          where: { id: collectionType.id }
+        });
         
         return res.status(201).json({ 
-          data: collectionType,
-          message: 'Collection created successfully. Please restart your development server to use the new Prisma Client.',
-          requiresRestart: true
+          data: updatedCollection,
+          message: 'Collection created successfully. Table is ready to use.',
+          requiresRestart: false
         });
         
       } catch (error: any) {
@@ -123,4 +139,19 @@ export default async function handler(
     console.error('Collection Types API Error:', error);
     return res.status(500).json({ error: error.message || 'Internal server error' });
   }
+}
+
+/**
+ * Get collection fields from metadata
+ */
+async function getCollectionFields(collectionName: string): Promise<any[]> {
+  const collection = await prisma.collectionType.findUnique({
+    where: { name: collectionName }
+  });
+
+  if (!collection) {
+    return [];
+  }
+
+  return (collection.fields as any)?.fields || [];
 }

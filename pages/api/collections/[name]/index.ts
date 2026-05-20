@@ -4,7 +4,7 @@ import { findManyDynamic, createDynamic } from '@/lib/dynamic-prisma';
 import { ApiResponse, Field } from '@/lib/types';
 import { filterVirtualRelationFields } from '@/lib/relation-engine';
 import { populateMultipleEntries, createComponentEntry } from '@/lib/component-populate';
-import { populateMultipleRelations } from '@/lib/relation-populate';
+import { resolveMultipleRelations } from '@/lib/relation-resolver';
 
 export default async function handler(
   req: NextApiRequest,
@@ -58,8 +58,8 @@ export default async function handler(
         return convertedEntry;
       });
 
-      // ALWAYS populate relations automatically
-      let finalEntries = await populateMultipleRelations(convertedEntries, name, fields);
+      // ALWAYS resolve relations automatically using new relation resolver
+      let finalEntries = await resolveMultipleRelations(convertedEntries, name, fields);
 
       // Populate components if requested
       if (populate === 'true') {
@@ -141,8 +141,8 @@ export default async function handler(
       // Process component fields - create component entries if needed
       const processedData = await processComponentFields(convertedData, fields);
 
-      // Filter out virtual relation fields (like "products" in ProductCategory)
-      // Only keep physical columns (like "categoryId" in Product)
+      // Filter out virtual relation fields (like "blogs" in Category)
+      // Only keep physical columns (like "categoryId" in Blog)
       const filteredData = filterVirtualRelationFields(fields, processedData);
 
       console.log('[API POST] Filtered data:', filteredData);

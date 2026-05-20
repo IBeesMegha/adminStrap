@@ -194,7 +194,7 @@ async function populateSingleRelation(
 async function populateManyRelation(
   sourceId: string,
   targetCollection: string,
-  targetFkField: string, // e.g., "blogCateId" on the target collection
+  targetFkField: string, // e.g., "blogCate" - the relation field name on the target
   visitedIds: Set<string>,
   options: PopulateOptions
 ): Promise<Record<string, any>[]> {
@@ -211,10 +211,19 @@ async function populateManyRelation(
 
     const targetFields = (targetCollectionType.fields as any)?.fields || [];
 
-    // Find the FK field name in the target collection
-    // The targetFkField is the relation field name (e.g., "blogCate")
-    // We need to convert it to the FK column name (e.g., "blogCateId")
-    const fkColumnName = `${targetFkField}Id`;
+    // Convert the relation field name to the FK column name
+    // e.g., "blogCate" -> "blogCateId" or "blog-cate" -> "blogCateId"
+    const sanitizedFieldName = targetFkField
+      .replace(/[\s-]+/g, '_')
+      .replace(/[^a-zA-Z0-9_]/g, '')
+      .split('_')
+      .filter((part: string) => part.length > 0)
+      .map((part: string, index: number) => 
+        index === 0 ? part.toLowerCase() : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+      )
+      .join('');
+    
+    const fkColumnName = `${sanitizedFieldName}Id`;
 
     console.log(`[Relation Populate] Querying ${targetCollection} where ${fkColumnName} = ${sourceId}`);
 
@@ -222,6 +231,8 @@ async function populateManyRelation(
     const relatedEntries = await findManyDynamic(targetCollection, {
       where: { [fkColumnName]: sourceId }
     }) as any[];
+
+    console.log(`[Relation Populate] Found ${relatedEntries?.length || 0} related entries`);
 
     if (!relatedEntries || relatedEntries.length === 0) {
       return [];

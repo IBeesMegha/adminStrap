@@ -1,12 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
 import { ApiResponse } from '@/lib/types';
-import { synchronizeRelations } from '@/lib/relation-engine';
-import { regenerateSchema } from '@/lib/schema-sync';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
+import { 
+  dropDynamicTable, 
+  syncTableSchema, 
+  tableExists 
+} from '@/lib/dynamic-table-service';
 
 export default async function handler(
   req: NextApiRequest,
@@ -33,23 +32,15 @@ export default async function handler(
     }
 
     if (req.method === 'PUT') {
-      // Update collection type with automatic relation synchronization
+      // Update collection type with automatic schema synchronization
       const { displayName, description, fields } = req.body;
 
       if (!fields || !fields.fields || fields.fields.length === 0) {
         return res.status(400).json({ error: 'At least one field is required' });
       }
 
-      // Store original state for rollback
-      let originalCollectionType;
-      
       try {
         console.log(`\n=== Updating collection: ${name} ===`);
-        
-        // Get original state before update
-        originalCollectionType = await prisma.collectionType.findUnique({
-          where: { name },
-        });
         
         // 1. Update the collection metadata in database
         console.log('Step 1: Updating collection metadata...');
@@ -63,120 +54,54 @@ export default async function handler(
         });
         console.log('✓ Metadata updated');
 
-        // 2. Synchronize relations (add opposite fields to target collections)
-        console.log('Step 2: Synchronizing relations...');
-        await synchronizeRelations(name, fields.fields);
-        console.log('✓ Relations synchronized');
+        // 2. Sync table schema with new fields (add/remove columns as needed)
+        console.log('Step 2: Synchronizing table schema...');
+        await syncTableSchema(name, fields.fields);
+        console.log('✓ Table schema synchronized');
 
-        // 3. Regenerate complete Prisma schema from metadata
-        console.log('Step 3: Regenerating Prisma schema...');
-        await regenerateSchema();
-        console.log('✓ Schema regenerated');
-
-        // 4. Format schema (optional, don't fail if it errors)
-        console.log('Step 4: Formatting schema...');
-        try {
-          await execAsync('npx prisma format', {
-            windowsHide: true,
-            timeout: 30000,
-          });
-          console.log('✓ Schema formatted');
-        } catch (formatError) {
-          console.warn('⚠ Schema formatting skipped (non-critical)');
-        }
-
-        // 5. Push schema to database (NO CLIENT GENERATION - avoids Windows EPERM)
-        console.log('Step 5: Pushing schema to database...');
-        try {
-          const { stdout, stderr } = await execAsync('npx prisma db push --skip-generate --accept-data-loss', {
-            windowsHide: true,
-            timeout: 120000,
-          });
-          
-          if (stderr && !stderr.includes('warnings')) {
-            console.warn('⚠ Push warnings:', stderr);
-          }
-          
-          console.log('✓ Schema pushed to database');
-        } catch (pushError: any) {
-          console.error('✗ Push error:', pushError.message);
-          throw new Error(`Failed to push schema to database: ${pushError.message}`);
-        }
-
-        console.log(`\n✓ Collection ${name} updated successfully!\n`);
-        console.log('⚠️  IMPORTANT: Please restart your dev server to use the updated Prisma Client');
-        console.log('   Press Ctrl+C in terminal, then run: npm run dev\n');
+        console.log(`\n✓ Collection ${name} updated successfully!`);
+        console.log('✓ No server restart needed - changes are live\n');
         
         return res.status(200).json({ 
           data: collectionType,
-          message: 'Schema updated successfully. Please restart your development server to use the updated Prisma Client.',
-          requiresRestart: true
+          message: 'Collection updated successfully. Changes are live.',
+          requiresRestart: false
         });
         
       } catch (error: any) {
         console.error('\n✗ Update failed:', error.message);
         
-        // Attempt rollback to original state
-        if (originalCollectionType) {
-          try {
-            console.log('Attempting rollback to original state...');
-            
-            // Restore original metadata
-            await prisma.collectionType.update({
-              where: { name },
-              data: {
-                displayName: originalCollectionType.displayName,
-                description: originalCollectionType.description,
-                fields: originalCollectionType.fields as any,
-              },
-            });
-            
-            // Regenerate schema from original state
-            await regenerateSchema();
-            
-            // Try to push original schema back
-            try {
-              await execAsync('npx prisma db push --skip-generate --accept-data-loss', {
-                windowsHide: true,
-                timeout: 120000,
-              });
-              console.log('✓ Rollback completed successfully');
-            } catch (rollbackPushError) {
-              console.error('⚠ Rollback push failed, but metadata restored');
-            }
-            
-          } catch (rollbackError) {
-            console.error('✗ Rollback error:', rollbackError);
-          }
-        }
-        
         return res.status(500).json({ 
-          error: `Failed to update schema: ${error.message}` 
+          error: `Failed to update collection: ${error.message}` 
         });
       }
     }
 
     if (req.method === 'DELETE') {
-      // Delete collection type
+      // Delete collection type and drop its table
       try {
+        console.log(`\n=== Deleting collection: ${name} ===`);
+        
+        // 1. Delete collection type metadata
+        console.log('Step 1: Deleting collection metadata...');
         await prisma.collectionType.delete({
           where: { name },
         });
+        console.log('✓ Metadata deleted');
 
-        // Regenerate schema without this collection
-        await regenerateSchema();
-        
-        // Push updated schema
-        await execAsync('npx prisma db push --skip-generate --accept-data-loss', {
-          windowsHide: true,
-          timeout: 120000,
-        });
+        // 2. Drop the dynamic table
+        console.log('Step 2: Dropping dynamic table...');
+        await dropDynamicTable(name);
+        console.log('✓ Table dropped');
+
+        console.log(`\n✓ Collection ${name} deleted successfully!\n`);
 
         return res.status(200).json({ 
-          message: 'Collection type deleted. Please restart your dev server.',
-          requiresRestart: true
+          message: 'Collection deleted successfully.',
+          requiresRestart: false
         });
       } catch (error: any) {
+        console.error('\n✗ Deletion failed:', error.message);
         return res.status(500).json({ 
           error: `Failed to delete collection: ${error.message}` 
         });

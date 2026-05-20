@@ -24,6 +24,7 @@ export interface RelationMetadata {
   // Metadata for tracking bidirectional relations
   relationName?: string; // e.g., "ProductToCategory"
   isOwner?: boolean; // Which side owns the foreign key
+  isVirtual?: boolean; // True for inverse relations (no physical column)
 }
 
 export interface Field {

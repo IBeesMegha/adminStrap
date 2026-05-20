@@ -1,3 +1,11 @@
+// ============================================================================
+// STATIC CMS SCHEMA - DO NOT ADD DYNAMIC MODELS HERE
+// ============================================================================
+// This schema contains ONLY core CMS system tables.
+// Dynamic content tables (Blog, News, etc.) are created at runtime via raw SQL.
+// See lib/dynamic-table-service.ts for dynamic table management.
+// ============================================================================
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,44 +15,51 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Content Type Definitions
+// ============================================================================
+// CORE SYSTEM TABLES
+// ============================================================================
+
+// Content Type Definitions - Stores metadata for dynamic collections
 model CollectionType {
   id          String   @id @default(cuid())
   name        String   @unique
   displayName String
   description String?
-  fields      Json
+  fields      Json     // Field definitions stored as JSON
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
+// Single Type Definitions - Stores metadata and data for singleton content
 model SingleType {
   id          String   @id @default(cuid())
   name        String   @unique
   displayName String
   description String?
-  fields      Json
-  data        Json?
+  fields      Json     // Field definitions stored as JSON
+  data        Json?    // Actual content data stored as JSON
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
+// Component Definitions - Stores metadata for reusable components
 model Component {
   id          String           @id @default(cuid())
   name        String           @unique
   displayName String
   category    String
-  fields      Json
-  entries     ComponentEntry[]
+  fields      Json             // Field definitions stored as JSON
+  entries     ComponentEntry[] // Component instances
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 }
 
+// Component Entries - Stores actual component data instances
 model ComponentEntry {
   id          String    @id @default(cuid())
   componentId String
   component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
-  data        Json
+  data        Json      // Component data stored as JSON
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -52,7 +67,7 @@ model ComponentEntry {
   @@map("component_entries")
 }
 
-// Media Library
+// Media Library - Stores uploaded media files metadata
 model Media {
   id              String   @id @default(cuid())
   name            String
@@ -71,6 +86,21 @@ model Media {
   @@map("media")
 }
 
-// Dynamic Collection Types
-// Note: Collection type tables are created dynamically at runtime
-// Do not add hardcoded models here - they should only exist in CollectionType table
+// ============================================================================
+// IMPORTANT: DO NOT ADD DYNAMIC CONTENT MODELS BELOW THIS LINE
+// ============================================================================
+// Dynamic content tables (Blog, News, Product, etc.) are managed at runtime.
+// They are NOT part of this schema file.
+// 
+// To create a dynamic table:
+//   1. Create a CollectionType via the admin UI or API
+//   2. The system automatically creates the SQL table using raw queries
+//   3. No Prisma model is generated
+//   4. Query using lib/dynamic-prisma.ts functions
+//
+// This approach ensures:
+//   ✓ Fresh clones don't recreate deleted content tables
+//   ✓ Schema stays clean and maintainable
+//   ✓ No migration conflicts from dynamic models
+//   ✓ Prisma only manages core CMS infrastructure
+// ============================================================================

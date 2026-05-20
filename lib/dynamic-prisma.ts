@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { randomBytes } from 'crypto';
+import { getTableColumns } from './dynamic-table-service';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
@@ -29,15 +30,22 @@ export async function executeRawQuery(query: string, params: any[] = []) {
  * Get all records from a dynamic table
  */
 export async function findManyDynamic(tableName: string, options?: { where?: Record<string, any> }) {
+  const sanitizedTableName = tableName.toLowerCase().replace(/-/g, '_');
+  
   if (options?.where) {
     const whereKeys = Object.keys(options.where);
     const whereValues = Object.values(options.where);
     const whereClause = whereKeys.map((key, i) => `"${key}" = $${i + 1}`).join(' AND ');
-    const query = `SELECT * FROM "${tableName}" WHERE ${whereClause} ORDER BY "createdAt" DESC`;
+    const query = `SELECT * FROM "${sanitizedTableName}" WHERE ${whereClause} ORDER BY "createdAt" DESC`;
+    
+    console.log(`[findManyDynamic] Table: ${tableName} -> ${sanitizedTableName}`);
+    console.log(`[findManyDynamic] Query: ${query}`);
+    console.log(`[findManyDynamic] Values:`, whereValues);
+    
     return await executeRawQuery(query, whereValues);
   }
   
-  const query = `SELECT * FROM "${tableName}" ORDER BY "createdAt" DESC`;
+  const query = `SELECT * FROM "${sanitizedTableName}" ORDER BY "createdAt" DESC`;
   return await executeRawQuery(query);
 }
 
@@ -45,7 +53,8 @@ export async function findManyDynamic(tableName: string, options?: { where?: Rec
  * Get single record from a dynamic table
  */
 export async function findUniqueDynamic(tableName: string, id: string) {
-  const query = `SELECT * FROM "${tableName}" WHERE id = $1`;
+  const sanitizedTableName = tableName.toLowerCase().replace(/-/g, '_');
+  const query = `SELECT * FROM "${sanitizedTableName}" WHERE id = $1`;
   return await executeRawQuery(query, [id]);
 }
 
@@ -57,8 +66,10 @@ async function filterVirtualRelationFields(
   tableName: string,
   data: Record<string, any>
 ): Promise<Record<string, any>> {
+  const sanitizedTableName = tableName.toLowerCase().replace(/-/g, '_');
+  
   // Get actual database columns
-  const columnsInfo: any = await getTableColumns(tableName);
+  const columnsInfo: any = await getTableColumns(sanitizedTableName);
   const actualColumns = new Set(
     columnsInfo.map((col: any) => col.column_name)
   );
@@ -83,8 +94,10 @@ export async function createDynamic(
   tableName: string,
   data: Record<string, any>
 ) {
+  const sanitizedTableName = tableName.toLowerCase().replace(/-/g, '_');
+  
   // First, get column types to know which are JSONB
-  const columnsInfo: any = await getTableColumns(tableName);
+  const columnsInfo: any = await getTableColumns(sanitizedTableName);
   const jsonbColumns = new Set(
     columnsInfo
       .filter((col: any) => col.data_type === 'jsonb')
@@ -154,7 +167,7 @@ export async function createDynamic(
   }).join(', ');
   
   const query = `
-    INSERT INTO "${tableName}" (${columns.map(c => `"${c}"`).join(', ')})
+    INSERT INTO "${sanitizedTableName}" (${columns.map(c => `"${c}"`).join(', ')})
     VALUES (${placeholders})
     RETURNING *
   `;
@@ -175,8 +188,10 @@ export async function updateDynamic(
   id: string,
   data: Record<string, any>
 ) {
+  const sanitizedTableName = tableName.toLowerCase().replace(/-/g, '_');
+  
   // First, get column types to know which are JSONB
-  const columnsInfo: any = await getTableColumns(tableName);
+  const columnsInfo: any = await getTableColumns(sanitizedTableName);
   const jsonbColumns = new Set(
     columnsInfo
       .filter((col: any) => col.data_type === 'jsonb')
@@ -240,7 +255,7 @@ export async function updateDynamic(
   }).join(', ');
   
   const query = `
-    UPDATE "${tableName}"
+    UPDATE "${sanitizedTableName}"
     SET ${setClause}, "updatedAt" = NOW()
     WHERE id = $${values.length + 1}
     RETURNING *
@@ -258,37 +273,29 @@ export async function updateDynamic(
  * Delete record from a dynamic table
  */
 export async function deleteDynamic(tableName: string, id: string) {
-  const query = `DELETE FROM "${tableName}" WHERE id = $1 RETURNING *`;
+  const sanitizedTableName = tableName.toLowerCase().replace(/-/g, '_');
+  const query = `DELETE FROM "${sanitizedTableName}" WHERE id = $1 RETURNING *`;
   const result: any = await executeRawQuery(query, [id]);
   return result[0];
 }
 
 /**
- * Check if table exists
+ * Check if table exists in database
  */
 export async function tableExists(tableName: string): Promise<boolean> {
-  const query = `
-    SELECT EXISTS (
+  const result = await prisma.$queryRawUnsafe<Array<{ exists: boolean }>>(
+    `SELECT EXISTS (
       SELECT FROM information_schema.tables 
       WHERE table_schema = 'public' 
       AND table_name = $1
-    )
-  `;
-  
-  const result: any = await executeRawQuery(query, [tableName]);
+    )`,
+    tableName.toLowerCase().replace(/-/g, '_')
+  );
+
   return result[0]?.exists || false;
 }
 
 /**
- * Get table columns
+ * Get table columns (re-exported from dynamic-table-service)
  */
-export async function getTableColumns(tableName: string) {
-  const query = `
-    SELECT column_name, data_type, is_nullable
-    FROM information_schema.columns
-    WHERE table_schema = 'public' AND table_name = $1
-    ORDER BY ordinal_position
-  `;
-  
-  return await executeRawQuery(query, [tableName]);
-}
+export { getTableColumns } from './dynamic-table-service';

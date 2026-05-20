@@ -1,227 +1,319 @@
-# Next.js CMS - Strapi-like Content Management System
+# Next.js Dynamic CMS
 
-A full-stack, Strapi-like CMS built with Next.js, PostgreSQL, Prisma, and TypeScript. Features a dynamic Content-Type Builder, Collection Types, Single Types, and reusable Components.
+A full-stack, Strapi-like CMS built with Next.js, PostgreSQL, Prisma, and TypeScript. Features a dynamic Content-Type Builder with **runtime table creation** - no schema modifications or server restarts needed.
 
-## 🚀 Features
+## 🚀 Key Features
 
-### Content Types
-- **Collection Types**: Multiple entries with full CRUD operations and listing
-- **Single Types**: Single record per type (e.g., Homepage, Settings)
-- **Components**: Reusable content blocks (SEO, Hero, Image blocks)
+### 🎯 Hybrid Database Architecture
+- **Static Core Tables**: Managed by Prisma (CollectionType, SingleType, Component, Media)
+- **Dynamic Content Tables**: Created at runtime via raw SQL (Blog, News, Product, etc.)
+- **No Schema Pollution**: `schema.prisma` stays clean forever
+- **No Server Restarts**: Changes are live immediately
+- **No Migration Conflicts**: Fresh clones only create core tables
 
-### Dynamic Content-Type Builder
-- Create content types dynamically through the UI
-- Define custom fields with validation
-- Support for multiple field types:
-  - String, Text, Rich Text
-  - Number, Boolean, Date
-  - Email, JSON
-  - Component references
+### 🔗 Metadata-Driven Relations
+- **Automatic Bidirectional Relations**: Creating `Blog.category` automatically creates `Category.blogs`
+- **Virtual Inverse Relations**: Inverse relations exist only in metadata, not as physical columns
+- **Owner-Based Foreign Keys**: Only the owning side has a physical FK column
+- **Dynamic Resolution**: Relations resolved at runtime via SQL joins
+- **All Relation Types**: oneToOne, oneToMany, manyToOne, manyToMany
 
-### Admin Panel
-- Modern, responsive UI built with Tailwind CSS
-- Sidebar navigation with all content types
-- Dynamic form generation based on field definitions
-- Publish/Draft status for collection entries
+### 📦 Content Types
+- **Collection Types**: Multiple entries with full CRUD operations
+- **Single Types**: Singleton content (Homepage, Settings)
+- **Components**: Reusable content blocks
+- **Dynamic Zones**: Flexible component arrays
+
+### 🛠️ Dynamic Content-Type Builder
+- Create content types through the UI
+- Add/remove fields on the fly
+- Support for 13+ field types
+- Relations between collections
+- Real-time schema synchronization
+
+### 🎨 Admin Panel
+- Modern, responsive UI with Tailwind CSS
+- Dynamic form generation
+- Media library with folder organization
+- Rich text editor (CKEditor)
 - Full CRUD operations
+
+## 🏗️ Architecture
+
+### Hybrid Database Approach
+
+This CMS uses a **unique hybrid architecture**:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     DATABASE LAYER                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  STATIC TABLES (Managed by Prisma)                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │
+│  │CollectionType│  │  SingleType  │  │  Component   │    │
+│  └──────────────┘  └──────────────┘  └──────────────┘    │
+│  ┌──────────────┐  ┌──────────────┐                       │
+│  │ComponentEntry│  │    Media     │                       │
+│  └──────────────┘  └──────────────┘                       │
+│                                                             │
+│  DYNAMIC TABLES (Created at Runtime via Raw SQL)           │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │
+│  │     blog     │  │     news     │  │   product    │    │
+│  └──────────────┘  └──────────────┘  └──────────────┘    │
+│  ┌──────────────┐  ┌──────────────┐                       │
+│  │   category   │  │  ... more    │                       │
+│  └──────────────┘  └──────────────┘                       │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Why This Approach?
+
+**Traditional CMS Problem:**
+- Dynamic models written to `schema.prisma`
+- Migrations created for every collection
+- Fresh clones recreate deleted tables
+- Server restart required after changes
+
+**Our Solution:**
+- ✅ `schema.prisma` contains only 5 core models
+- ✅ Dynamic tables created via raw SQL at runtime
+- ✅ Fresh clones only create core infrastructure
+- ✅ No server restarts needed
+- ✅ No migration conflicts
 
 ### Technical Stack
 - **Frontend**: Next.js 14, React, TypeScript
 - **Backend**: Next.js API Routes
-- **Database**: PostgreSQL with Prisma ORM
+- **Database**: PostgreSQL with Prisma ORM + Raw SQL
 - **Forms**: React Hook Form + Zod validation
 - **Styling**: Tailwind CSS
-- **Rich Text**: React Quill
+- **Rich Text**: CKEditor 5
 
 ## 📁 Project Structure
 
 ```
 nextjs-cms/
-├── components/
-│   └── admin/
-│       ├── DynamicForm.tsx       # Dynamic form generator
-│       ├── FormField.tsx         # Individual field components
-│       ├── Layout.tsx            # Admin layout wrapper
-│       └── Sidebar.tsx           # Navigation sidebar
+├── components/admin/          # Admin UI components
 ├── lib/
-│   ├── prisma.ts                 # Prisma client instance
-│   └── types.ts                  # TypeScript types & validation
+│   ├── dynamic-table-service.ts   # 🆕 Runtime table management
+│   ├── dynamic-prisma.ts          # CRUD for dynamic tables
+│   ├── prisma.ts                  # Prisma client
+│   └── types.ts                   # TypeScript types
 ├── pages/
-│   ├── admin/
-│   │   ├── index.tsx             # Dashboard
-│   │   ├── content-type-builder.tsx  # Content-Type Builder UI
-│   │   ├── collections/
-│   │   │   └── [name]/
-│   │   │       ├── index.tsx     # Collection listing
-│   │   │       ├── new.tsx       # Create entry
-│   │   │       └── [id].tsx      # Edit entry
-│   │   ├── singles/
-│   │   │   └── [name].tsx        # Edit single type
-│   │   └── components/
-│   │       └── index.tsx         # Components list
-│   ├── api/
-│   │   ├── collection-types/
-│   │   │   ├── index.ts          # List/Create collection types
-│   │   │   └── [name].ts         # Get/Update/Delete collection type
-│   │   ├── single-types/
-│   │   │   ├── index.ts          # List/Create single types
-│   │   │   └── [name].ts         # Get/Update/Delete single type
-│   │   ├── components/
-│   │   │   ├── index.ts          # List/Create components
-│   │   │   └── [name].ts         # Get/Update/Delete component
-│   │   └── collections/
-│   │       └── [name]/
-│   │           ├── index.ts      # List/Create entries
-│   │           └── [id].ts       # Get/Update/Delete entry
-│   └── _app.tsx
+│   ├── admin/                     # Admin panel pages
+│   └── api/                       # API routes
 ├── prisma/
-│   └── schema.prisma             # Database schema
-├── styles/
-│   └── globals.css               # Global styles
-├── .env.example                  # Environment variables template
-├── package.json
-├── tsconfig.json
-├── tailwind.config.ts
-├── next.config.js
-└── postcss.config.js
+│   └── schema.prisma              # 🔒 Static core tables only
+├── ARCHITECTURE.md                # 📖 Architecture deep dive
+├── MIGRATION_CLEANUP.md           # 🔧 Migration guide
+├── EXAMPLES.md                    # 💡 Code examples
+├── QUICK_REFERENCE.md             # ⚡ Quick reference
+└── REFACTOR_SUMMARY.md            # 📝 What changed
 ```
 
 ## 🛠️ Installation
 
 ### Prerequisites
-- Node.js 18+ 
+- Node.js 18+
 - PostgreSQL database
 - npm or yarn
 
-### Setup Steps
+### Quick Start
 
-1. **Clone and install dependencies**
 ```bash
+# 1. Install dependencies
 npm install
-```
 
-2. **Configure environment variables**
-```bash
+# 2. Configure environment
 cp .env.example .env
-```
+# Edit .env with your PostgreSQL connection string
 
-Edit `.env` and add your PostgreSQL connection string:
-```env
-DATABASE_URL="postgresql://user:password@localhost:5432/nextjs_cms?schema=public"
-```
-
-3. **Initialize database**
-```bash
+# 3. Initialize database (creates ONLY core tables)
 npx prisma generate
 npx prisma migrate dev --name init
-```
 
-4. **Run development server**
-```bash
+# 4. Start development server
 npm run dev
+
+# 5. Access admin panel
+# Open http://localhost:3000/admin
 ```
 
-5. **Access the admin panel**
-Open [http://localhost:3000/admin](http://localhost:3000/admin)
+### What Gets Created?
+
+After running migrations, you'll have **only 5 core tables**:
+- `CollectionType` - Metadata for dynamic collections
+- `SingleType` - Singleton content types
+- `Component` - Reusable component definitions
+- `ComponentEntry` - Component instances
+- `Media` - Media library
+
+**No Blog, News, or Product tables yet!** These are created when you define them via the UI.
+
+### Creating Your First Collection
+
+1. Go to `/admin/content-type-builder`
+2. Click "Create Collection Type"
+3. Name it "Blog", add fields (title, content, etc.)
+4. Click "Create" → Table is created instantly via raw SQL
+5. No schema.prisma modification
+6. No server restart needed
+7. Start adding blog posts immediately!
 
 ## 📖 Usage Guide
 
 ### Creating a Collection Type
 
-1. Navigate to **Content-Type Builder** in the sidebar
-2. Click **Create Collection Type**
-3. Fill in:
-   - **Name**: API identifier (e.g., `blog-post`)
-   - **Display Name**: Human-readable name (e.g., `Blog Post`)
-   - **Description**: Optional description
-4. Add fields:
-   - Field Name: `title`
-   - Display Name: `Title`
-   - Type: `string`
-   - Required: ✓
-5. Click **Add Field** and repeat for other fields
-6. Click **Create Content Type**
+```typescript
+// Via UI: /admin/content-type-builder
+// Or via API:
+POST /api/collection-types
+{
+  "name": "blog",
+  "displayName": "Blog",
+  "fields": {
+    "fields": [
+      { "name": "title", "type": "string", "required": true },
+      { "name": "content", "type": "richtext" },
+      { "name": "published", "type": "boolean" }
+    ]
+  }
+}
 
-### Creating Entries
+// Result: Table "blog" created instantly via raw SQL
+// No schema.prisma modification
+// No server restart needed
+```
 
-1. Click on your collection type in the sidebar
-2. Click **Create New Entry**
-3. Fill in the dynamic form
-4. Click **Create Entry**
-5. Use **Publish** button to make it live
+### CRUD Operations
 
-### Creating a Single Type
+```typescript
+import {
+  findManyDynamic,
+  createDynamic,
+  updateDynamic,
+  deleteDynamic
+} from '@/lib/dynamic-prisma';
 
-1. Go to **Content-Type Builder**
-2. Add `?type=single` to URL or select Single Type
-3. Define fields (same as collection)
-4. Edit directly from sidebar (no listing page)
+// Create
+const post = await createDynamic('blog', {
+  title: 'Hello World',
+  content: '<p>My first post</p>',
+  published: true
+});
 
-### Creating Components
+// Read
+const posts = await findManyDynamic('blog');
 
-1. Go to **Content-Type Builder**
-2. Add `?type=component` to URL
-3. Define reusable fields (e.g., SEO component with title, description, keywords)
-4. Use components in Collection/Single types by adding a `component` field type
+// Update
+await updateDynamic('blog', post.id, {
+  title: 'Updated Title'
+});
 
-## 🗄️ Database Schema
+// Delete
+await deleteDynamic('blog', post.id);
+```
 
-### Dynamic Schema Architecture
+### Adding Fields to Existing Collection
 
-This CMS uses a **metadata-driven dynamic schema** approach:
+```typescript
+// Via UI: Edit collection in Content-Type Builder
+// Or via API:
+PUT /api/collection-types/blog
+{
+  "fields": {
+    "fields": [
+      { "name": "title", "type": "string", "required": true },
+      { "name": "content", "type": "richtext" },
+      { "name": "author", "type": "string" } // NEW FIELD
+    ]
+  }
+}
 
-- **Core tables** (CollectionType, SingleType, Component, Media) are always present
-- **Dynamic tables** (e.g., Blogs, Products) are generated automatically when you create collection types
-- Tables are **NOT hardcoded** in the schema - they're created from metadata stored in the `CollectionType` table
+// Result: ALTER TABLE "blog" ADD COLUMN "author" TEXT
+// No schema.prisma modification
+// No server restart needed
+```
 
-#### Fresh Clone Behavior
-When you clone this project with a fresh database:
-- ✅ Core metadata tables are created
-- ✅ `CollectionType` table is empty
-- ✅ **No dynamic tables exist yet** (Blogs, News, etc.)
-- ✅ Clean starting point with no orphaned tables
+## 🗄️ Database Architecture
 
-Dynamic tables are created **only when** you define collection types through the admin UI or API.
+### Core Tables (Managed by Prisma)
 
-📖 **For detailed information**, see [DYNAMIC_SCHEMA_GUIDE.md](./DYNAMIC_SCHEMA_GUIDE.md)
-
-### Core Prisma Models
-
-**CollectionType**: Stores collection type definitions
-- `id`, `name`, `displayName`, `description`
-- `fields`: JSON schema for fields
-- Drives dynamic table generation
-
-**SingleType**: Stores single type definitions
-- `id`, `name`, `displayName`, `description`
-- `fields`: JSON schema for fields
-- `data`: The actual single entry data (JSON)
-
-**Component**: Stores reusable component definitions
-- `id`, `name`, `displayName`, `category`
-- `fields`: JSON schema for fields
-
-**Media**: Media library files
-- `id`, `name`, `url`, `mime`, `size`
-- `alternativeText`, `caption`
-- `width`, `height`, `ext`
-
-### Dynamic Models (Generated)
-
-Dynamic models are created automatically when you define collection types. For example, creating a "Blog" collection type generates:
+These tables are defined in `schema.prisma` and managed by Prisma migrations:
 
 ```prisma
-model Blogs {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  // ... your custom fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  @@map("blogs")
+model CollectionType {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayName String
+  fields      Json     // Field definitions
+  // ...
 }
+
+model SingleType { /* ... */ }
+model Component { /* ... */ }
+model ComponentEntry { /* ... */ }
+model Media { /* ... */ }
 ```
+
+### Dynamic Tables (Managed by Raw SQL)
+
+These tables are created at runtime when you define collections:
+
+```sql
+-- Created when you define "Blog" collection
+CREATE TABLE "blog" (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  content TEXT,
+  published BOOLEAN,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Created when you define "Product" collection
+CREATE TABLE "product" (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  price DOUBLE PRECISION NOT NULL,
+  "categoryId" TEXT,  -- Foreign key for relations
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Fresh Clone Behavior
+
+```bash
+# Clone repository
+git clone <repo>
+
+# Run migrations
+npx prisma migrate dev
+
+# Result: Only 5 core tables created
+# ✅ CollectionType, SingleType, Component, ComponentEntry, Media
+# ❌ NO blog, news, product tables
+# ✅ Clean starting point
+
+# Create collections via UI
+# → Tables created dynamically
+# → No schema.prisma modification
+```
+
+### Benefits
+
+| Old Approach | New Approach |
+|--------------|--------------|
+| ❌ Dynamic models in schema.prisma | ✅ Static schema.prisma |
+| ❌ Migrations for every collection | ✅ No migrations for collections |
+| ❌ Fresh clones recreate deleted tables | ✅ Fresh clones only create core tables |
+| ❌ Server restart required | ✅ No restart needed |
+| ❌ Git conflicts on schema file | ✅ Clean git history |
+
+📖 **For detailed information**, see [ARCHITECTURE.md](./ARCHITECTURE.md)
 
 ## 🔌 API Routes
 
@@ -255,55 +347,89 @@ model Blogs {
 
 ## 🎨 Field Types
 
-| Type | Description | Use Case |
-|------|-------------|----------|
-| `string` | Short text | Titles, names |
-| `text` | Long text | Descriptions, paragraphs |
-| `richtext` | WYSIWYG editor | Blog content, articles |
-| `number` | Numeric values | Prices, quantities |
-| `boolean` | True/false | Featured, published flags |
-| `date` | Date picker | Publication dates |
-| `email` | Email validation | Contact emails |
-| `json` | Raw JSON | Custom data structures |
-| `component` | Component reference | Reusable blocks |
+| Type | PostgreSQL Type | Description | Example |
+|------|----------------|-------------|---------|
+| `string` | TEXT | Short text | `"Hello World"` |
+| `text` | TEXT | Long text | `"Long description..."` |
+| `richtext` | TEXT | HTML content | `"<p>Rich text</p>"` |
+| `richtext-ckeditor` | TEXT | CKEditor content | `"<p>CKEditor</p>"` |
+| `number` | DOUBLE PRECISION | Numeric values | `42.5` |
+| `boolean` | BOOLEAN | True/false | `true` |
+| `date` | TIMESTAMP(3) | Date/time | `"2024-01-01"` |
+| `email` | TEXT | Email address | `"user@example.com"` |
+| `json` | JSONB | JSON data | `{"key": "value"}` |
+| `media` (single) | TEXT | Media URL | `"https://..."` |
+| `media` (multiple) | JSONB | Media array | `["url1", "url2"]` |
+| `component` | JSONB | Component data | `{"field": "value"}` |
+| `dynamiczone` | JSONB | Component array | `[{...}, {...}]` |
+| `relation` | TEXT | Foreign key | `"clx123..."` |
 
-## 🔐 Validation
+### Relation Types
 
-Forms are validated using Zod schemas generated from field definitions:
-- Required fields
-- Min/max length for strings
-- Min/max values for numbers
-- Email format validation
-- Custom validation rules
+| Type | Description | Example |
+|------|-------------|---------|
+| `oneToOne` | 1:1 relationship | User ↔ Profile |
+| `manyToOne` | N:1 relationship | Product → Category |
+| `oneToMany` | 1:N relationship | Category → Products |
+| `manyToMany` | N:N relationship | Post ↔ Tags |
 
-## 🚧 Future Enhancements
+## 📚 Documentation
 
-- [ ] Media library for image/file uploads
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Detailed architecture explanation
+- **[RELATION_SYSTEM.md](./RELATION_SYSTEM.md)** - Metadata-driven relation system
+- **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)** - Quick reference guide
+- **[EXAMPLES.md](./EXAMPLES.md)** - Code examples and patterns
+- **[MIGRATION_CLEANUP.md](./MIGRATION_CLEANUP.md)** - Migration guide
+- **[REFACTOR_SUMMARY.md](./REFACTOR_SUMMARY.md)** - What changed
+
+## 🚧 Roadmap
+
+- [x] Dynamic table creation via raw SQL
+- [x] No schema.prisma modifications
+- [x] No server restarts needed
+- [x] Relations between collections
+- [x] Media library with folders
+- [x] Rich text editor (CKEditor)
+- [x] Components and dynamic zones
 - [ ] User authentication and roles
-- [ ] API token generation for frontend consumption
-- [ ] Drag-and-drop field ordering
-- [ ] Relation fields between content types
+- [ ] API token generation
 - [ ] Internationalization (i18n)
 - [ ] Content versioning
 - [ ] Webhooks
 - [ ] GraphQL API
-- [ ] Search and filtering
 
-## 📝 Example: Creating a Blog
+## 🔐 Security
 
-1. **Create Collection Type "Blog Post"**
-   - Fields: title (string), slug (string), content (richtext), published_date (date), featured (boolean)
+### SQL Injection Prevention
 
-2. **Create Component "SEO"**
-   - Fields: meta_title (string), meta_description (text), keywords (text)
+All table and column names are validated:
 
-3. **Create Single Type "Blog Settings"**
-   - Fields: posts_per_page (number), enable_comments (boolean)
+```typescript
+import { validateSqlIdentifier } from '@/lib/dynamic-table-service';
 
-4. **Create Entries**
-   - Add blog posts through the admin panel
-   - Edit blog settings
-   - Publish/unpublish posts
+// ✅ Safe
+validateSqlIdentifier('blog')        // true
+validateSqlIdentifier('blog_posts')  // true
+
+// ❌ Blocked
+validateSqlIdentifier('blog; DROP')  // false
+validateSqlIdentifier('blog--')      // false
+```
+
+All queries use parameterization:
+
+```typescript
+// ✅ Safe - parameterized
+await prisma.$queryRawUnsafe(
+  'SELECT * FROM "blog" WHERE id = $1',
+  userId
+);
+
+// ❌ Unsafe - string concatenation
+await prisma.$queryRawUnsafe(
+  `SELECT * FROM "blog" WHERE id = '${userId}'`
+);
+```
 
 ## 🤝 Contributing
 
