@@ -2,10 +2,11 @@ import '@/styles/globals.css';
 import 'ckeditor5/ckeditor5.css';
 import type { AppProps } from 'next/app';
 import { Toaster } from 'react-hot-toast';
+import { AuthProvider } from '@/context/AuthContext';
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <>
+    <AuthProvider>
       <Toaster
         position="top-right"
         reverseOrder={false}
@@ -41,6 +42,6 @@ export default function App({ Component, pageProps }: AppProps) {
         }}
       />
       <Component {...pageProps} />
-    </>
+    </AuthProvider>
   );
 }

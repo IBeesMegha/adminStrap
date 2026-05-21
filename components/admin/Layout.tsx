@@ -1,5 +1,7 @@
 import React, { ReactNode, useEffect, useState } from 'react';
 import { Sidebar } from './Sidebar';
+import { Header } from './Header';
+import { ProtectedRoute } from './auth/ProtectedRoute';
 
 interface LayoutProps {
   children: ReactNode;
@@ -19,9 +21,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const fetchContentTypes = async () => {
     try {
       const [collectionsRes, singlesRes, componentsRes] = await Promise.all([
-        fetch('/api/collection-types'),
-        fetch('/api/single-types'),
-        fetch('/api/components'),
+        fetch('/api/collection-types', { credentials: 'include' }),
+        fetch('/api/single-types', { credentials: 'include' }),
+        fetch('/api/components', { credentials: 'include' }),
       ]);
 
       const collections = await collectionsRes.json();
@@ -38,25 +40,35 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   if (!mounted) {
     return (
-      <div className="flex h-screen bg-gray-100">
-        <div className="w-64 bg-gray-900"></div>
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
-      </div>
+      <ProtectedRoute>
+        <div className="flex h-screen bg-gray-100">
+          <div className="w-64 bg-gray-900"></div>
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="bg-white border-b border-gray-200 h-16"></div>
+            <main className="flex-1 overflow-y-auto">
+              {children}
+            </main>
+          </div>
+        </div>
+      </ProtectedRoute>
     );
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar
-        collectionTypes={collectionTypes}
-        singleTypes={singleTypes}
-        components={components}
-      />
-      <main className="flex-1 overflow-y-auto">
-        {children}
-      </main>
-    </div>
+    <ProtectedRoute>
+      <div className="flex h-screen bg-gray-100">
+        <Sidebar
+          collectionTypes={collectionTypes}
+          singleTypes={singleTypes}
+          components={components}
+        />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-y-auto">
+            {children}
+          </main>
+        </div>
+      </div>
+    </ProtectedRoute>
   );
 };

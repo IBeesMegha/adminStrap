@@ -19,6 +19,45 @@ datasource db {
 // CORE SYSTEM TABLES
 // ============================================================================
 
+// ============================================================================
+// AUTHENTICATION TABLES
+// ============================================================================
+
+// User - Admin users who can access the CMS
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String    // bcrypt hashed password
+  name      String
+  role      String    @default("admin") // admin, super_admin
+  isActive  Boolean   @default(true)
+  sessions  Session[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("users")
+}
+
+// Session - Stores refresh tokens for authenticated users
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken String   @unique // hashed refresh token
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@map("sessions")
+}
+
+// ============================================================================
+// CMS CONTENT TABLES
+// ============================================================================
+
 // Content Type Definitions - Stores metadata for dynamic collections
 model CollectionType {
   id          String   @id @default(cuid())
