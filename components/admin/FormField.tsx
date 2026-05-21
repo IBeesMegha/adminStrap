@@ -47,10 +47,26 @@ export const FormField: React.FC<FormFieldProps> = ({
   useEffect(() => {
     if (field.type === 'media' && value && !selectedMedia) {
       if (field.multiple) {
-        // Multiple media - parse JSON array of URLs
+        // Multiple media - handle both array and stringified array
         try {
-          const urls = typeof value === 'string' ? JSON.parse(value) : value;
-          if (Array.isArray(urls)) {
+          let urls: string[] = [];
+          if (Array.isArray(value)) {
+            urls = value;
+          } else if (typeof value === 'string') {
+            try {
+              const parsed = JSON.parse(value);
+              if (Array.isArray(parsed)) {
+                urls = parsed;
+              }
+            } catch {
+              // Not JSON, might be a single URL
+              if (value.trim()) {
+                urls = [value];
+              }
+            }
+          }
+          
+          if (urls.length > 0) {
             // Create mock MediaAsset objects from URLs
             const mockAssets: MediaAsset[] = urls.map((url, index) => ({
               id: `temp-${index}`,
@@ -116,8 +132,8 @@ export const FormField: React.FC<FormFieldProps> = ({
   const handleMediaSelect = (media: MediaAsset | MediaAsset[]) => {
     setSelectedMedia(media);
     if (Array.isArray(media)) {
-      // Multiple media - store as JSON array of URLs
-      setValue(field.name, JSON.stringify(media.map(m => m.url)));
+      // Multiple media - store as array of URLs (not stringified)
+      setValue(field.name, media.map(m => m.url));
     } else {
       // Single media - store URL as string
       setValue(field.name, media.url);
@@ -126,14 +142,16 @@ export const FormField: React.FC<FormFieldProps> = ({
 
   const handleManageMediaSave = (media: MediaAsset[]) => {
     setSelectedMedia(media);
-    setValue(field.name, JSON.stringify(media.map(m => m.url)));
+    // Store as array of URLs (not stringified)
+    setValue(field.name, media.map(m => m.url));
   };
 
   const removeMedia = (index?: number) => {
     if (field.multiple && Array.isArray(selectedMedia) && index !== undefined) {
       const updated = selectedMedia.filter((_, i) => i !== index);
       setSelectedMedia(updated);
-      setValue(field.name, JSON.stringify(updated.map(m => m.url)));
+      // Store as array of URLs (not stringified)
+      setValue(field.name, updated.map(m => m.url));
     } else {
       setSelectedMedia(null);
       setValue(field.name, '');
@@ -199,7 +217,7 @@ export const FormField: React.FC<FormFieldProps> = ({
             type="number"
             {...register(field.name, { 
               valueAsNumber: true,
-              setValueAs: (v) => v === '' ? undefined : Number(v)
+              setValueAs: (v: any) => v === '' ? undefined : Number(v)
             })}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
               error ? 'border-red-500' : 'border-gray-300'

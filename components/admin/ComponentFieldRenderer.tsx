@@ -10,6 +10,16 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight, Plus, Trash2, GripVertical } from 'lucide-react';
 import { Field } from '@/lib/types';
+import { MediaFieldController } from './MediaFieldController';
+import dynamic from 'next/dynamic';
+
+const ReactQuill = dynamic(() => import('react-quill'), { 
+  ssr: false,
+  loading: () => <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm">Loading editor...</div>
+});
+import 'react-quill/dist/quill.snow.css';
+
+import { CKEditorField } from './CKEditorField';
 
 interface ComponentFieldRendererProps {
   field: Field;
@@ -135,6 +145,40 @@ export const ComponentFieldRenderer: React.FC<ComponentFieldRendererProps> = ({
           />
         );
 
+      case 'richtext':
+        return (
+          <div className="border border-gray-300 rounded-lg">
+            {typeof window !== 'undefined' && (
+              <ReactQuill
+                theme="snow"
+                value={entryValue || ''}
+                onChange={onFieldChange}
+                className="bg-white"
+              />
+            )}
+          </div>
+        );
+
+      case 'richtext-ckeditor':
+        return (
+          <div className="border border-gray-300 rounded-lg">
+            <CKEditorField
+              value={entryValue || ''}
+              onChange={onFieldChange}
+            />
+          </div>
+        );
+
+      case 'date':
+        return (
+          <input
+            type="date"
+            value={entryValue || ''}
+            onChange={(e) => onFieldChange(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        );
+
       case 'number':
         return (
           <input
@@ -161,12 +205,11 @@ export const ComponentFieldRenderer: React.FC<ComponentFieldRendererProps> = ({
 
       case 'media':
         return (
-          <input
-            type="text"
-            value={entryValue || ''}
-            onChange={(e) => onFieldChange(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Media URL"
+          <MediaFieldController
+            fieldName={componentField.name}
+            multiple={componentField.multiple}
+            value={entryValue || (componentField.multiple ? '[]' : '')}
+            onChange={onFieldChange}
           />
         );
 

@@ -14,16 +14,36 @@ export default async function handler(
 
   try {
     if (req.method === 'GET') {
-      // Get specific single type
+      // Get specific single type by name (not slug!)
       const singleType = await prisma.singleType.findUnique({
-        where: { name },
+        where: { name: name }, // Use name parameter from URL, not slug from data
       });
 
       if (!singleType) {
         return res.status(404).json({ error: 'Single type not found' });
       }
 
-      return res.status(200).json({ data: singleType });
+      console.log(`[Single Type API GET] Found single type: ${singleType.name}`);
+
+      // Return only the data content, not the schema fields
+      // The schema is available via /api/single-types endpoint for admin purposes
+      // const response: any = {
+      //   id: singleType.id,
+      //   name: singleType.name,
+      //   displayName: singleType.displayName,
+      //   description: singleType.description,
+      //   data: singleType.data,
+      //   createdAt: singleType.createdAt,
+      //   updatedAt: singleType.updatedAt,
+      // };
+
+      // Only include fields if explicitly requested (for admin UI)
+      // const includeFields = req.query.includeFields === 'true';
+      // if (includeFields) {
+      //   response.fields = singleType.fields;
+      // }
+
+      return res.status(200).json({ data: singleType.data });
     }
 
     if (req.method === 'PUT') {

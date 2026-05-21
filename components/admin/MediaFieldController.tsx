@@ -7,8 +7,8 @@ import { Plus, Edit, Trash2, Settings } from 'lucide-react';
 interface MediaFieldControllerProps {
   fieldName: string;
   multiple?: boolean;
-  value: string;
-  onChange: (value: string) => void;
+  value: any; // Can be string, array, or stringified JSON
+  onChange: (value: any) => void; // Can pass string or array
 }
 
 export const MediaFieldController: React.FC<MediaFieldControllerProps> = ({
@@ -27,8 +27,26 @@ export const MediaFieldController: React.FC<MediaFieldControllerProps> = ({
       console.log(`[MediaFieldController ${fieldName}] Initializing with value:`, value);
       if (multiple) {
         try {
-          const urls = typeof value === 'string' ? JSON.parse(value) : value;
-          if (Array.isArray(urls) && urls.length > 0) {
+          // Handle both array and stringified array
+          let urls: string[] = [];
+          if (Array.isArray(value)) {
+            urls = value;
+          } else if (typeof value === 'string') {
+            // Try to parse if it's a JSON string
+            try {
+              const parsed = JSON.parse(value);
+              if (Array.isArray(parsed)) {
+                urls = parsed;
+              }
+            } catch {
+              // Not JSON, might be a single URL
+              if (value.trim()) {
+                urls = [value];
+              }
+            }
+          }
+          
+          if (urls.length > 0) {
             const mockAssets: MediaAsset[] = urls.map((url, index) => ({
               id: `temp-${index}`,
               name: url.split('/').pop() || 'image',
@@ -66,9 +84,10 @@ export const MediaFieldController: React.FC<MediaFieldControllerProps> = ({
     console.log(`[MediaFieldController ${fieldName}] Media selected:`, media);
     setLocalSelectedMedia(media);
     if (Array.isArray(media)) {
-      const jsonValue = JSON.stringify(media.map(m => m.url));
-      console.log(`[MediaFieldController ${fieldName}] Calling onChange with (multiple):`, jsonValue);
-      onChange(jsonValue);
+      // Store as array of URLs (not stringified)
+      const urlArray = media.map(m => m.url);
+      console.log(`[MediaFieldController ${fieldName}] Calling onChange with (multiple):`, urlArray);
+      onChange(urlArray as any);
       console.log(`[MediaFieldController ${fieldName}] onChange called successfully`);
     } else {
       console.log(`[MediaFieldController ${fieldName}] Calling onChange with (single):`, media.url);
@@ -79,15 +98,17 @@ export const MediaFieldController: React.FC<MediaFieldControllerProps> = ({
 
   const handleManageMediaSave = (media: MediaAsset[]) => {
     setLocalSelectedMedia(media);
-    const jsonValue = JSON.stringify(media.map(m => m.url));
-    onChange(jsonValue);
+    // Store as array of URLs (not stringified)
+    const urlArray = media.map(m => m.url);
+    onChange(urlArray as any);
   };
 
   const removeMedia = (index?: number) => {
     if (multiple && Array.isArray(localSelectedMedia) && index !== undefined) {
       const updated = localSelectedMedia.filter((_, i) => i !== index);
       setLocalSelectedMedia(updated);
-      onChange(JSON.stringify(updated.map(m => m.url)));
+      // Store as array of URLs (not stringified)
+      onChange(updated.map(m => m.url) as any);
     } else {
       setLocalSelectedMedia(null);
       onChange('');

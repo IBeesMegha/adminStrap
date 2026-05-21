@@ -48,7 +48,19 @@ export const DynamicZoneFieldRenderer: React.FC<DynamicZoneFieldRendererProps> =
   useEffect(() => {
     if (value) {
       try {
-        const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+        // Handle both array and stringified array
+        let parsed: any[] = [];
+        if (Array.isArray(value)) {
+          parsed = value;
+        } else if (typeof value === 'string') {
+          try {
+            parsed = JSON.parse(value);
+          } catch {
+            console.error('Failed to parse dynamic zone value as JSON:', value);
+            parsed = [];
+          }
+        }
+        
         if (Array.isArray(parsed)) {
           setInstances(parsed);
           // Expand all instances by default
@@ -94,7 +106,8 @@ export const DynamicZoneFieldRenderer: React.FC<DynamicZoneFieldRendererProps> =
 
     const updated = [...instances, newInstance];
     setInstances(updated);
-    onChange(JSON.stringify(updated));
+    // Store as array (not stringified)
+    onChange(updated as any);
     setExpandedInstances(prev => {
       const newSet = new Set(prev);
       newSet.add(newInstance.id);
@@ -106,7 +119,8 @@ export const DynamicZoneFieldRenderer: React.FC<DynamicZoneFieldRendererProps> =
   const removeInstance = (instanceId: string) => {
     const updated = instances.filter(inst => inst.id !== instanceId);
     setInstances(updated);
-    onChange(JSON.stringify(updated));
+    // Store as array (not stringified)
+    onChange(updated as any);
   };
 
   const updateInstanceData = (instanceId: string, data: any) => {
@@ -114,7 +128,8 @@ export const DynamicZoneFieldRenderer: React.FC<DynamicZoneFieldRendererProps> =
       inst.id === instanceId ? { ...inst, data } : inst
     );
     setInstances(updated);
-    onChange(JSON.stringify(updated));
+    // Store as array (not stringified)
+    onChange(updated as any);
   };
 
   const toggleExpanded = (instanceId: string) => {
@@ -142,7 +157,8 @@ export const DynamicZoneFieldRenderer: React.FC<DynamicZoneFieldRendererProps> =
     [updated[index], updated[targetIndex]] = [updated[targetIndex], updated[index]];
     
     setInstances(updated);
-    onChange(JSON.stringify(updated));
+    // Store as array (not stringified)
+    onChange(updated as any);
   };
 
   const getComponentDefinition = (componentName: string): ComponentDefinition | undefined => {

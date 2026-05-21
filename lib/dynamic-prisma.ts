@@ -116,7 +116,8 @@ export async function createDynamic(
   // This prevents errors like: column "products" of relation "product_category" does not exist
   const filteredData = await filterVirtualRelationFields(tableName, dataWithDefaults);
   
-  // Convert date strings to Date objects and handle JSON fields
+  // Process data - keep objects/arrays as-is for JSONB columns
+  // CRITICAL: Never stringify arrays/objects - Prisma handles JSONB serialization
   const processedData: Record<string, any> = {};
   for (const [key, value] of Object.entries(filteredData)) {
     if (value === null || value === undefined) {
@@ -127,22 +128,23 @@ export async function createDynamic(
     } else if (value && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
       // Convert YYYY-MM-DD string to Date object
       processedData[key] = new Date(value);
-    } else if (typeof value === 'string' && (value.trim().startsWith('[') || value.trim().startsWith('{'))) {
-      // Parse JSON strings to objects for JSONB columns
-      try {
-        const parsed = JSON.parse(value);
-        processedData[key] = parsed;
-      } catch (e) {
-        console.error(`Failed to parse JSON for key ${key}:`, e);
+    } else if (jsonbColumns.has(key)) {
+      // For JSONB columns, ALWAYS keep objects/arrays as-is
+      // NEVER stringify - Prisma will handle JSON serialization automatically
+      if (typeof value === 'string' && (value.trim().startsWith('[') || value.trim().startsWith('{'))) {
+        // If it's already a JSON string (backward compatibility), parse it first
+        try {
+          processedData[key] = JSON.parse(value);
+        } catch (e) {
+          // If parsing fails, store as-is
+          processedData[key] = value;
+        }
+      } else {
+        // Already an object/array or primitive - store as-is (CORRECT)
         processedData[key] = value;
       }
-    } else if (typeof value === 'object' && !Array.isArray(value)) {
-      // Already an object, keep as is (will be handled by PostgreSQL)
-      processedData[key] = value;
-    } else if (Array.isArray(value)) {
-      // Already an array, keep as is
-      processedData[key] = value;
     } else {
+      // Non-JSONB column - store as-is
       processedData[key] = value;
     }
   }
@@ -205,7 +207,8 @@ export async function updateDynamic(
   // Remove updatedAt from data if it exists (we'll add it manually in the query)
   const { updatedAt, ...dataWithoutUpdatedAt } = filteredData;
 
-  // Convert date strings to Date objects and handle JSON fields
+  // Process data - keep objects/arrays as-is for JSONB columns
+  // CRITICAL: Never stringify arrays/objects - Prisma handles JSONB serialization
   const processedData: Record<string, any> = {};
   for (const [key, value] of Object.entries(dataWithoutUpdatedAt)) {
     if (value === null || value === undefined) {
@@ -216,22 +219,23 @@ export async function updateDynamic(
     } else if (value && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
       // Convert YYYY-MM-DD string to Date object
       processedData[key] = new Date(value);
-    } else if (typeof value === 'string' && (value.trim().startsWith('[') || value.trim().startsWith('{'))) {
-      // Parse JSON strings to objects for JSONB columns
-      try {
-        const parsed = JSON.parse(value);
-        processedData[key] = parsed;
-      } catch (e) {
-        console.error(`Failed to parse JSON for key ${key}:`, e);
+    } else if (jsonbColumns.has(key)) {
+      // For JSONB columns, ALWAYS keep objects/arrays as-is
+      // NEVER stringify - Prisma will handle JSON serialization automatically
+      if (typeof value === 'string' && (value.trim().startsWith('[') || value.trim().startsWith('{'))) {
+        // If it's already a JSON string (backward compatibility), parse it first
+        try {
+          processedData[key] = JSON.parse(value);
+        } catch (e) {
+          // If parsing fails, store as-is
+          processedData[key] = value;
+        }
+      } else {
+        // Already an object/array or primitive - store as-is (CORRECT)
         processedData[key] = value;
       }
-    } else if (typeof value === 'object' && !Array.isArray(value)) {
-      // Already an object, keep as is
-      processedData[key] = value;
-    } else if (Array.isArray(value)) {
-      // Already an array, keep as is
-      processedData[key] = value;
     } else {
+      // Non-JSONB column - store as-is
       processedData[key] = value;
     }
   }
