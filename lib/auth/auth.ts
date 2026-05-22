@@ -47,12 +47,21 @@ export async function authenticateUser(
 
   try {
     console.log('[AUTH] Starting authentication for:', email);
-    console.log('[AUTH] Prisma client type:', typeof prisma);
-    console.log('[AUTH] Prisma.user type:', typeof prisma?.user);
     
-    // Find user by email
+    // Find user by email with role and permissions
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
+      include: {
+        role: {
+          include: {
+            permissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     console.log('[AUTH] User found:', !!user);
@@ -76,7 +85,7 @@ export async function authenticateUser(
     const tokenPayload: TokenPayload = {
       userId: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role?.slug || 'viewer',
     };
 
     // Create session with refresh token
@@ -108,7 +117,7 @@ export async function authenticateUser(
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
+        role: user.role?.slug || 'viewer',
       },
       accessToken,
       refreshToken,
@@ -202,10 +211,17 @@ export async function getUserById(userId: string) {
       id: true,
       email: true,
       name: true,
-      role: true,
+      roleId: true,
       isActive: true,
       createdAt: true,
       updatedAt: true,
+      role: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
     },
   });
 

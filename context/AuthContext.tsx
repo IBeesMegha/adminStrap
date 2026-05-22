@@ -6,18 +6,29 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/router';
 
+interface Role {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 interface User {
   id: string;
   email: string;
   name: string;
-  role: string;
+  roleId: string | null;
   isActive: boolean;
+  role?: Role | null;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
+  permissions: string[];
+  hasPermission: (permission: string) => boolean;
+  hasAnyPermission: (permissions: string[]) => boolean;
+  isSuperAdmin: () => boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -31,6 +42,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -51,12 +63,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.ok) {
         const data = await response.json();
         setUser(data.data.user);
+        setPermissions(data.data.permissions || []);
       } else {
         setUser(null);
+        setPermissions([]);
       }
     } catch (error) {
       console.error('Auth check failed:', error);
       setUser(null);
+      setPermissions([]);
     } finally {
       setLoading(false);
     }
@@ -83,6 +98,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       setUser(data.data.user);
+      setPermissions(data.data.permissions || []);
       
       // Redirect to admin dashboard
       router.push('/admin');
@@ -102,11 +118,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       setUser(null);
+      setPermissions([]);
       router.push('/admin/login');
     } catch (error) {
       console.error('Logout failed:', error);
       // Still clear user state even if API call fails
       setUser(null);
+      setPermissions([]);
       router.push('/admin/login');
     }
   };
@@ -123,16 +141,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.ok) {
         const data = await response.json();
         setUser(data.data.user);
+        setPermissions(data.data.permissions || []);
       }
     } catch (error) {
       console.error('Failed to refresh user:', error);
     }
   };
 
+  /**
+   * Check if user has a specific permission
+   */
+  const hasPermission = (permission: string): boolean => {
+    // Super admin bypasses all checks
+    if (user?.role?.slug === 'super_admin') {
+      return true;
+    }
+    return permissions.includes(permission);
+  };
+
+  /**
+   * Check if user has any of the specified permissions
+   */
+  const hasAnyPermission = (perms: string[]): boolean => {
+    // Super admin bypasses all checks
+    if (user?.role?.slug === 'super_admin') {
+      return true;
+    }
+    return perms.some(p => permissions.includes(p));
+  };
+
+  /**
+   * Check if user is super admin
+   */
+  const isSuperAdmin = (): boolean => {
+    return user?.role?.slug === 'super_admin';
+  };
+
   const value: AuthContextType = {
     user,
     loading,
     isAuthenticated: !!user,
+    permissions,
+    hasPermission,
+    hasAnyPermission,
+    isSuperAdmin,
     login,
     logout,
     refreshUser,

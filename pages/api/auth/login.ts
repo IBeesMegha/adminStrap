@@ -43,11 +43,17 @@ export default async function handler(
     // Set secure HTTP-only cookies
     setAuthCookies(res, authResult.accessToken, authResult.refreshToken);
 
+    // Get user with permissions for response
+    const { getUserWithPermissions, getUserPermissions } = await import('@/lib/rbac/permissions');
+    const userWithPerms = await getUserWithPermissions(authResult.user.id);
+    const permissions = userWithPerms ? getUserPermissions(userWithPerms) : [];
+
     // Return user data (without tokens in body for security)
     return res.status(200).json({
       success: true,
       data: {
         user: authResult.user,
+        permissions,
       },
     });
   } catch (error: any) {

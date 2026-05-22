@@ -29,13 +29,60 @@ model User {
   email     String    @unique
   password  String    // bcrypt hashed password
   name      String
-  role      String    @default("admin") // admin, super_admin
+  roleId    String?
+  role      Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
   isActive  Boolean   @default(true)
   sessions  Session[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
+  @@index([roleId])
   @@map("users")
+}
+
+// Role - User roles with permissions
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  slug        String           @unique
+  description String?
+  isSystem    Boolean          @default(false) // System roles cannot be deleted
+  users       User[]
+  permissions RolePermission[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@map("roles")
+}
+
+// Permission - Granular permissions for actions
+model Permission {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  slug        String           @unique // e.g., "users.create", "content.read"
+  module      String           // e.g., "users", "content", "media"
+  description String?
+  roles       RolePermission[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([module])
+  @@map("permissions")
+}
+
+// RolePermission - Many-to-many relationship between roles and permissions
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
 }
 
 // Session - Stores refresh tokens for authenticated users

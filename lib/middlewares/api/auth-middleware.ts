@@ -6,21 +6,16 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { verifyAccessToken } from '@/lib/auth/jwt';
 import { getAccessToken } from '@/lib/auth/cookies';
-import { getUserById } from '@/lib/auth/auth';
+import { getUserWithPermissions } from '@/lib/rbac/permissions';
+import type { UserWithPermissions } from '@/lib/rbac/permissions';
 
 export interface AuthenticatedRequest extends NextApiRequest {
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    role: string;
-    isActive: boolean;
-  };
+  user: UserWithPermissions;
 }
 
 /**
  * Middleware to authenticate API requests
- * Verifies JWT token and attaches user to request
+ * Verifies JWT token and attaches user with permissions to request
  */
 export async function withAuth(
   req: NextApiRequest,
@@ -41,8 +36,15 @@ export async function withAuth(
     // Verify token
     const decoded = verifyAccessToken(accessToken);
 
-    // Get user from database
-    const user = await getUserById(decoded.userId);
+    // Get user from database with permissions
+    const user = await getUserWithPermissions(decoded.userId);
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not found',
+      });
+    }
 
     if (!user.isActive) {
       return res.status(403).json({
@@ -75,7 +77,9 @@ export function withRole(roles: string[]) {
     handler: (req: AuthenticatedRequest, res: NextApiResponse) => Promise<void>
   ): Promise<void> => {
     return withAuth(req, res, async (authReq, authRes) => {
-      if (!roles.includes(authReq.user.role)) {
+      const userRole = authReq.user.role?.slug;
+      
+      if (!userRole || !roles.includes(userRole)) {
         return authRes.status(403).json({
           success: false,
           error: 'Insufficient permissions',
