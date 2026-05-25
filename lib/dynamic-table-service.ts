@@ -138,6 +138,10 @@ export async function createDynamicTable(
     'id TEXT PRIMARY KEY',
     '"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP',
     '"updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP',
+    // Internationalization fields
+    '"translationGroupId" TEXT NOT NULL',
+    'lang TEXT NOT NULL DEFAULT \'en\'',
+    '"localeStatus" TEXT DEFAULT \'published\'',
   ];
 
   // Add custom fields
@@ -200,6 +204,19 @@ export async function createDynamicTable(
   await prisma.$executeRawUnsafe(
     `CREATE INDEX "${tableName}_createdAt_idx" ON "${tableName}" ("createdAt" DESC)`
   );
+
+  // Create index on translationGroupId for better query performance
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX "${tableName}_translationGroupId_idx" ON "${tableName}" ("translationGroupId")`
+  );
+
+  // Create unique constraint on slug + lang if slug field exists
+  const hasSlugField = fields.some(f => sanitizeColumnName(f.name) === 'slug');
+  if (hasSlugField) {
+    await prisma.$executeRawUnsafe(
+      `CREATE UNIQUE INDEX "${tableName}_slug_lang_unique" ON "${tableName}" (slug, lang)`
+    );
+  }
 
   console.log(`[Dynamic Table] ✓ Table ${tableName} created successfully`);
 }
@@ -354,7 +371,7 @@ export async function syncTableSchema(
   );
 
   // Core columns that should always exist
-  const coreColumns = new Set(['id', 'createdAt', 'updatedAt']);
+  const coreColumns = new Set(['id', 'createdAt', 'updatedAt', 'translationGroupId', 'lang', 'localeStatus']);
 
   // Determine which columns should exist based on fields
   const expectedColumns = new Set<string>(Array.from(coreColumns));

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Layout } from '@/components/admin/Layout';
 import { DynamicForm } from '@/components/admin/DynamicForm';
+import { LanguageSelector } from '@/components/admin/LanguageSelector';
 import { useRouter } from 'next/router';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 
@@ -14,6 +15,9 @@ export default function EditCollectionEntry() {
   const [entry, setEntry] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [serverError, setServerError] = useState<{ field: string; message: string } | null>(null);
+  const [currentLang, setCurrentLang] = useState<string>('en');
+  const [availableTranslations, setAvailableTranslations] = useState<string[]>([]);
+  const [translationGroupId, setTranslationGroupId] = useState<string>('');
 
   useEffect(() => {
     if (name && id) {
@@ -32,6 +36,26 @@ export default function EditCollectionEntry() {
       const entryData = await entryRes.json();
 
       setCollectionType(typeData.data);
+      
+      // Set i18n data
+      const fetchedEntry = entryData.data;
+      setCurrentLang(fetchedEntry.lang || 'en');
+      setTranslationGroupId(fetchedEntry.translationGroupId || '');
+
+      // Fetch available translations
+      if (fetchedEntry.translationGroupId) {
+        try {
+          const transRes = await fetch(
+            `/api/collections/${name}/translations/${fetchedEntry.translationGroupId}`
+          );
+          const transData = await transRes.json();
+          if (transRes.ok) {
+            setAvailableTranslations(transData.data.availableLanguages || []);
+          }
+        } catch (err) {
+          console.error('Failed to fetch translations:', err);
+        }
+      }
       
       // Format dates for HTML date inputs (YYYY-MM-DD)
       // Also handle JSON fields for media
@@ -127,6 +151,41 @@ export default function EditCollectionEntry() {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLanguageChange = async (newLang: string) => {
+    if (newLang === currentLang) return;
+
+    // Check if translation exists
+    if (availableTranslations.includes(newLang)) {
+      // Navigate to existing translation
+      try {
+        const res = await fetch(
+          `/api/collections/${name}/translations/${translationGroupId}`
+        );
+        const data = await res.json();
+        
+        if (res.ok) {
+          const translation = data.data.translations.find(
+            (t: any) => t.lang === newLang
+          );
+          
+          if (translation) {
+            router.push(`/admin/collections/${name}/${translation.id}`);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load translation:', error);
+        toast.error('Failed to load translation');
+      }
+    } else {
+      // Create new translation
+      if (confirm(`Create a new ${newLang.toUpperCase()} translation?`)) {
+        router.push(
+          `/admin/collections/${name}/new?lang=${newLang}&translationGroupId=${translationGroupId}`
+        );
+      }
     }
   };
 
@@ -276,16 +335,24 @@ export default function EditCollectionEntry() {
           <h1 className="text-3xl font-bold text-gray-900">
             Edit {collectionType.displayName}
           </h1>
-          <button
-            onClick={handlePublish}
-            className={`px-4 py-2 rounded-lg ${
-              entry.published
-                ? 'bg-yellow-600 hover:bg-yellow-700'
-                : 'bg-green-600 hover:bg-green-700'
-            } text-white`}
-          >
-            {entry.published ? 'Unpublish' : 'Publish'}
-          </button>
+          <div className="flex items-center space-x-4">
+            <LanguageSelector
+              currentLang={currentLang}
+              onLanguageChange={handleLanguageChange}
+              translationGroupId={translationGroupId}
+              availableTranslations={availableTranslations}
+            />
+            <button
+              onClick={handlePublish}
+              className={`px-4 py-2 rounded-lg ${
+                entry.published
+                  ? 'bg-yellow-600 hover:bg-yellow-700'
+                  : 'bg-green-600 hover:bg-green-700'
+              } text-white`}
+            >
+              {entry.published ? 'Unpublish' : 'Publish'}
+            </button>
+          </div>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
