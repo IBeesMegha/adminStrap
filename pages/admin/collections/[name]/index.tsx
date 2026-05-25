@@ -710,7 +710,7 @@ export default function CollectionList() {
         setSelectedEntries(new Set());
         toast.success(`Successfully deleted ${successCount} entries`, { id: toastId });
       } else {
-        toast.warning(`Deleted ${successCount} out of ${selectedEntries.size} entries`, { id: toastId });
+        toast.error(`Deleted ${successCount} out of ${selectedEntries.size} entries`, { id: toastId });
         fetchData(); // Refresh to get current state
       }
     } catch (error) {

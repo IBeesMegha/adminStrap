@@ -357,7 +357,7 @@ export async function syncTableSchema(
   const coreColumns = new Set(['id', 'createdAt', 'updatedAt']);
 
   // Determine which columns should exist based on fields
-  const expectedColumns = new Set<string>([...coreColumns]);
+  const expectedColumns = new Set<string>(Array.from(coreColumns));
   
   for (const field of fields) {
     const columnName = sanitizeColumnName(field.name);

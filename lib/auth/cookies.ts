@@ -47,7 +47,7 @@ export function setCookie(
   const existingCookies = res.getHeader('Set-Cookie') || [];
   const cookies = Array.isArray(existingCookies)
     ? existingCookies
-    : [existingCookies];
+    : [String(existingCookies)];
   
   res.setHeader('Set-Cookie', [...cookies, cookie]);
 }

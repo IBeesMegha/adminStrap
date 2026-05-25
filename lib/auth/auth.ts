@@ -142,7 +142,13 @@ export async function refreshAccessToken(
   // Find session
   const session = await prisma.session.findUnique({
     where: { id: decoded.sessionId },
-    include: { user: true },
+    include: { 
+      user: {
+        include: {
+          role: true,
+        },
+      },
+    },
   });
 
   if (!session) {
@@ -170,7 +176,7 @@ export async function refreshAccessToken(
   const tokenPayload: TokenPayload = {
     userId: session.user.id,
     email: session.user.email,
-    role: session.user.role,
+    role: session.user.role?.slug || 'viewer',
   };
 
   const newAccessToken = generateAccessToken(tokenPayload);
@@ -241,7 +247,7 @@ export async function createUser(data: {
   email: string;
   password: string;
   name: string;
-  role?: string;
+  roleId?: string;
 }) {
   const hashedPassword = await hashPassword(data.password);
 
@@ -250,15 +256,22 @@ export async function createUser(data: {
       email: data.email.toLowerCase(),
       password: hashedPassword,
       name: data.name,
-      role: data.role || 'admin',
+      roleId: data.roleId || null,
     },
     select: {
       id: true,
       email: true,
       name: true,
-      role: true,
+      roleId: true,
       isActive: true,
       createdAt: true,
+      role: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
     },
   });
 

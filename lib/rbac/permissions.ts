@@ -10,6 +10,7 @@ export interface UserWithPermissions {
   email: string;
   name: string;
   roleId: string | null;
+  isActive: boolean;
   role?: {
     id: string;
     name: string;
