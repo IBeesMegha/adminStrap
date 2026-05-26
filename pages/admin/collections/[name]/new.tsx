@@ -40,7 +40,37 @@ export default function NewCollectionEntry() {
       fetchCollectionType();
       fetchDefaultLanguage();
     }
-  }, [name]);
+    
+    // Set language and translation group from query params
+    if (queryLang && typeof queryLang === 'string') {
+      setCurrentLang(queryLang);
+    }
+    if (queryTranslationGroupId && typeof queryTranslationGroupId === 'string') {
+      setTranslationGroupId(queryTranslationGroupId);
+      fetchAvailableTranslations(queryTranslationGroupId);
+    }
+  }, [name, queryLang, queryTranslationGroupId]);
+
+  const fetchAvailableTranslations = async (groupId: string) => {
+    try {
+      const res = await fetch(`/api/collections/${name}/translations/${groupId}`);
+      const data = await res.json();
+      if (res.ok) {
+        setAvailableTranslations(data.data.availableLanguages || []);
+        
+        // Find the source entry (default language entry)
+        const defaultLanguage = await getDefaultLang();
+        const sourceEntry = data.data.translations.find(
+          (t: any) => t.lang === defaultLanguage
+        );
+        if (sourceEntry) {
+          setSourceEntryId(sourceEntry.id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch translations:', err);
+    }
+  };
 
   useEffect(() => {
     // Set language and translation group from query params
@@ -71,27 +101,6 @@ export default function NewCollectionEntry() {
       }
     } catch (error) {
       console.error('Failed to fetch default language:', error);
-    }
-  };
-
-  const fetchAvailableTranslations = async (groupId: string) => {
-    try {
-      const res = await fetch(`/api/collections/${name}/translations/${groupId}`);
-      const data = await res.json();
-      if (res.ok) {
-        setAvailableTranslations(data.data.availableLanguages || []);
-        
-        // Find the source entry (default language entry)
-        const defaultLanguage = await getDefaultLang();
-        const sourceEntry = data.data.translations.find(
-          (t: any) => t.lang === defaultLanguage
-        );
-        if (sourceEntry) {
-          setSourceEntryId(sourceEntry.id);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch translations:', err);
     }
   };
 
