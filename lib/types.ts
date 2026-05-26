@@ -37,6 +37,7 @@ export interface Field {
   componentRef?: string; // For component type
   multiple?: boolean; // For component arrays and media fields (true = array, false/undefined = single)
   relation?: RelationMetadata;
+  translatable?: boolean; // Whether field should be translated in i18n
   validations?: {
     min?: number;
     max?: number;

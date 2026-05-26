@@ -172,6 +172,21 @@ model Media {
   @@map("media")
 }
 
+// Language - Stores available languages for internationalization
+model Language {
+  id         String   @id @default(cuid())
+  code       String   @unique // e.g., "en", "fr", "de"
+  name       String   // e.g., "English", "French", "German"
+  nativeName String?  // e.g., "English", "Français", "Deutsch"
+  flag       String?  // e.g., "🇺🇸", "🇫🇷", "🇩🇪"
+  isDefault  Boolean  @default(false)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("languages")
+}
+
 // ============================================================================
 // IMPORTANT: DO NOT ADD DYNAMIC CONTENT MODELS BELOW THIS LINE
 // ============================================================================

@@ -11,6 +11,7 @@ import {
   Image as ImageIcon,
   Users,
   Shield,
+  Globe,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -330,6 +331,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   >
                     <Shield size={16} />
                     <span>Roles & Permissions</span>
+                  </Link>
+                )}
+
+                {hasPermission('settings.manage') && (
+                  <Link
+                    href="/admin/settings/internationalization"
+                    className={`flex items-center space-x-2 px-3 py-2 text-sm rounded-lg transition ${
+                      router.pathname === '/admin/settings/internationalization'
+                        ? 'bg-gray-800 text-white'
+                        : 'text-gray-300 hover:bg-gray-800'
+                    }`}
+                  >
+                    <Globe size={16} />
+                    <span>Internationalization</span>
                   </Link>
                 )}
               </div>

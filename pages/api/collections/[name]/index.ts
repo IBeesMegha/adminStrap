@@ -5,6 +5,7 @@ import { ApiResponse, Field } from '@/lib/types';
 import { filterVirtualRelationFields } from '@/lib/relation-engine';
 import { populateMultipleEntries, createComponentEntry } from '@/lib/component-populate';
 import { resolveMultipleRelations } from '@/lib/relation-resolver';
+import { getDefaultLanguage, generateTranslationGroupId, validateLanguage } from '@/lib/i18n-helpers';
 
 export default async function handler(
   req: NextApiRequest,
@@ -15,6 +16,9 @@ export default async function handler(
   if (typeof name !== 'string') {
     return res.status(400).json({ error: 'Invalid collection name' });
   }
+
+  // Get lang parameter for filtering
+  const lang = typeof req.query.lang === 'string' ? req.query.lang : await getDefaultLanguage();
 
   try {
     // Get collection type metadata
@@ -29,33 +33,15 @@ export default async function handler(
     const fields = (collectionType.fields as any)?.fields || [];
 
     if (req.method === 'GET') {
-      // Get all entries from dynamic table
-      let entries: any = await findManyDynamic(name);
+      // Get all entries from dynamic table, filtered by language
+      let entries: any = await findManyDynamic(name, {
+        where: { lang }
+      });
 
       // Convert field names from database format back to collection type format
+      // Use exact field names - no conversion
       const convertedEntries = entries.map((entry: any) => {
-        const convertedEntry: Record<string, any> = {};
-        Object.keys(entry).forEach(key => {
-          // Find the original field name from the collection type
-          const field = fields.find((f: any) => {
-            // Sanitize the field name to match database column name
-            const sanitizedName = f.name
-              .replace(/[\s-]+/g, '_')
-              .replace(/[^a-zA-Z0-9_]/g, '')
-              .split('_')
-              .filter((part: string) => part.length > 0)
-              .map((part: string, index: number) => 
-                index === 0 ? part.toLowerCase() : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-              )
-              .join('');
-            return sanitizedName === key;
-          });
-
-          // Use the original field name if found, otherwise use the database column name
-          const originalKey = field ? field.name : key;
-          convertedEntry[originalKey] = entry[key];
-        });
-        return convertedEntry;
+        return { ...entry };
       });
 
       // ALWAYS resolve relations automatically using new relation resolver
@@ -71,64 +57,51 @@ export default async function handler(
 
     if (req.method === 'POST') {
       // Create new entry in dynamic table
-      const { data: entryData } = req.body;
+      const { data: entryData, lang: requestLang, translationGroupId } = req.body;
 
       console.log('[API POST] Received data:', entryData);
+      console.log('[API POST] Language:', requestLang);
+      console.log('[API POST] Translation Group ID:', translationGroupId);
 
       if (!entryData || Object.keys(entryData).length === 0) {
         return res.status(400).json({ error: 'Missing entry data' });
       }
 
+      // Determine language - use provided lang or default
+      const entryLang = requestLang || await getDefaultLanguage();
+      
+      // Validate language if provided
+      if (requestLang && !(await validateLanguage(requestLang))) {
+        return res.status(400).json({ error: 'Invalid or inactive language' });
+      }
+
+      // Generate or use provided translation group ID
+      const groupId = translationGroupId || generateTranslationGroupId();
+
+      console.log('[API POST] Using language:', entryLang);
+      console.log('[API POST] Using translation group ID:', groupId);
+
       console.log('[API POST] Collection fields:', fields.map((f: any) => ({ name: f.name, type: f.type })));
 
-      // Convert field names from collection type format to database format
-      // (e.g., profile_img -> profileImg)
+      // Use exact field names - no conversion
       const convertedData: Record<string, any> = {};
       Object.keys(entryData).forEach(key => {
-        // If the key ends with 'Id', it's already a FK field in correct format from the form
-        // Don't re-sanitize it to avoid breaking camelCase (e.g., blogCateId -> blogcateid)
-        if (key.endsWith('Id')) {
-          convertedData[key] = entryData[key];
-          console.log(`[API POST] FK field kept as-is: ${key}`);
-        } else {
-          // Sanitize the field name to match database column name
-          const sanitizedKey = key
-            .replace(/[\s-]+/g, '_')
-            .replace(/[^a-zA-Z0-9_]/g, '')
-            .split('_')
-            .filter(part => part.length > 0)
-            .map((part, index) => 
-              index === 0 ? part.toLowerCase() : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-            )
-            .join('');
-          
-          convertedData[sanitizedKey] = entryData[key];
-          if (sanitizedKey !== key) {
-            console.log(`[API POST] Converted field name: ${key} -> ${sanitizedKey}`);
-          }
-        }
+        convertedData[key] = entryData[key];
+        console.log(`[API POST] Field: ${key}`);
       });
 
-      console.log('[API POST] Converted data:', convertedData);
+      console.log('[API POST] Data to insert:', convertedData);
 
       // Check for unique field violations
       for (const field of fields) {
         if (field.unique && convertedData[field.name] !== undefined && convertedData[field.name] !== null && convertedData[field.name] !== '') {
-          const sanitizedFieldName = field.name
-            .replace(/[\s-]+/g, '_')
-            .replace(/[^a-zA-Z0-9_]/g, '')
-            .split('_')
-            .filter((part: string) => part.length > 0)
-            .map((part: string, index: number) => 
-              index === 0 ? part.toLowerCase() : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-            )
-            .join('');
+          const fieldName = field.name; // Use exact field name
 
-          console.log(`[API POST] Checking uniqueness for field: ${field.name} (sanitized: ${sanitizedFieldName}), value: ${convertedData[sanitizedFieldName]}`);
+          console.log(`[API POST] Checking uniqueness for field: ${fieldName}, value: ${convertedData[fieldName]}`);
 
           const existingEntry = await findManyDynamic(name, {
             where: {
-              [sanitizedFieldName]: convertedData[sanitizedFieldName]
+              [fieldName]: convertedData[fieldName]
             }
           }) as any[];
 
@@ -152,9 +125,12 @@ export default async function handler(
 
       console.log('[API POST] Filtered data:', filteredData);
 
-      // Prepare data for insertion
+      // Prepare data for insertion with i18n fields
       const dataToInsert = {
         ...filteredData,
+        translationGroupId: groupId,
+        lang: entryLang,
+        localeStatus: 'published',
       };
 
       const entry = await createDynamic(name, dataToInsert);

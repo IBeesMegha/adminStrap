@@ -39,34 +39,10 @@ export default async function handler(
       let entry = entries[0];
 
       // Convert field names from database format back to collection type format
-      // (e.g., profileImg -> profile_img)
-      const convertedEntry: Record<string, any> = {};
-      Object.keys(entry).forEach(key => {
-        // Find the original field name from the collection type
-        const field = fields.find((f: any) => {
-          // Sanitize the field name to match database column name
-          const sanitizedName = f.name
-            .replace(/[\s-]+/g, '_')
-            .replace(/[^a-zA-Z0-9_]/g, '')
-            .split('_')
-            .filter((part: string) => part.length > 0)
-            .map((part: string, index: number) => 
-              index === 0 ? part.toLowerCase() : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-            )
-            .join('');
-          return sanitizedName === key;
-        });
+      // Use exact field names - no conversion
+      const convertedEntry: Record<string, any> = { ...entry };
 
-        // Use the original field name if found, otherwise use the database column name
-        const originalKey = field ? field.name : key;
-        convertedEntry[originalKey] = entry[key];
-        
-        if (originalKey !== key) {
-          console.log(`[API GET] Converted field name: ${key} -> ${originalKey}`);
-        }
-      });
-
-      console.log('[API GET] Converted entry:', convertedEntry);
+      console.log('[API GET] Entry data:', convertedEntry);
 
       // ALWAYS populate relations automatically
       let finalEntry = await populateRelations(convertedEntry, name, fields);
@@ -92,53 +68,26 @@ export default async function handler(
       console.log('[API PUT] Collection fields:', fields.map((f: any) => ({ name: f.name, type: f.type })));
 
       // Convert field names from collection type format to database format
-      // (e.g., profile_img -> profileImg)
+      // Use exact field names - no conversion
       const convertedData: Record<string, any> = {};
       Object.keys(entryData).forEach(key => {
-        // If the key ends with 'Id', it's already a FK field in correct format from the form
-        // Don't re-sanitize it to avoid breaking camelCase (e.g., blogCateId -> blogcateid)
-        if (key.endsWith('Id')) {
-          convertedData[key] = entryData[key];
-          console.log(`[API PUT] FK field kept as-is: ${key}`);
-        } else {
-          // Sanitize the field name to match database column name
-          const sanitizedKey = key
-            .replace(/[\s-]+/g, '_')
-            .replace(/[^a-zA-Z0-9_]/g, '')
-            .split('_')
-            .filter(part => part.length > 0)
-            .map((part, index) => 
-              index === 0 ? part.toLowerCase() : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-            )
-            .join('');
-          
-          convertedData[sanitizedKey] = entryData[key];
-          if (sanitizedKey !== key) {
-            console.log(`[API PUT] Converted field name: ${key} -> ${sanitizedKey}`);
-          }
-        }
+        // Use the exact key as provided - no sanitization
+        convertedData[key] = entryData[key];
+        console.log(`[API PUT] Field: ${key} = ${entryData[key]}`);
       });
 
-      console.log('[API PUT] Converted data:', convertedData);
+      console.log('[API PUT] Data to update:', convertedData);
 
       // Check for unique field violations (excluding current entry)
       for (const field of fields) {
         if (field.unique && convertedData[field.name] !== undefined && convertedData[field.name] !== null && convertedData[field.name] !== '') {
-          const sanitizedFieldName = field.name
-            .replace(/[\s-]+/g, '_')
-            .replace(/[^a-zA-Z0-9_]/g, '')
-            .split('_')
-            .filter((part: string) => part.length > 0)
-            .map((part: string, index: number) => 
-              index === 0 ? part.toLowerCase() : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-            )
-            .join('');
+          const fieldName = field.name; // Use exact field name
 
-          console.log(`[API PUT] Checking uniqueness for field: ${field.name} (sanitized: ${sanitizedFieldName}), value: ${convertedData[sanitizedFieldName]}`);
+          console.log(`[API PUT] Checking uniqueness for field: ${fieldName}, value: ${convertedData[fieldName]}`);
 
           const existingEntries = await findManyDynamic(name, {
             where: {
-              [sanitizedFieldName]: convertedData[sanitizedFieldName]
+              [fieldName]: convertedData[fieldName]
             }
           }) as any[];
 

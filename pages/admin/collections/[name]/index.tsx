@@ -66,22 +66,22 @@ const SortableRow: React.FC<SortableRowProps> = ({ entry, index, name, fields, o
     console.log('Entry keys:', Object.keys(entry));
     console.log('Entry data:', JSON.stringify(entry, null, 2));
     console.log('Available fields from collection type:', fields);
-    
+
     let singleMediaField = null;
-    
+
     // First pass: Look for MULTIPLE media fields (prioritize these)
     for (const field of fields) {
       console.log(`Checking field: ${field.name}, type: ${field.type}, multiple: ${field.multiple}`);
-      
+
       if (field.type === 'media' && field.multiple) {
         const value = entry[field.name];
         console.log(`  Multiple media field "${field.name}" value:`, value);
         console.log(`  Value type:`, typeof value);
         console.log(`  Is array:`, Array.isArray(value));
-        
+
         if (value) {
           let urls: string[] = [];
-          
+
           if (Array.isArray(value)) {
             urls = value;
             console.log(`  ✓ Already an array with ${urls.length} items`);
@@ -98,10 +98,10 @@ const SortableRow: React.FC<SortableRowProps> = ({ entry, index, name, fields, o
               console.error('  ✗ Failed to parse JSON:', e);
             }
           }
-          
+
           const validUrls = urls.filter(url => typeof url === 'string' && url.trim());
           console.log(`  Valid URLs after filtering:`, validUrls);
-          
+
           if (validUrls.length > 0) {
             console.log(`  ✓✓✓ SUCCESS: Found ${validUrls.length} images in field "${field.name}":`, validUrls);
             return { url: validUrls[0], allUrls: validUrls, isMultiple: true };
@@ -117,20 +117,20 @@ const SortableRow: React.FC<SortableRowProps> = ({ entry, index, name, fields, o
         }
       }
     }
-    
+
     // Fallback: Check for common image field names in the entry data itself
     console.log('=== FALLBACK: Checking entry data directly for image fields ===');
     const imageFieldNames = ['images', 'image', 'photos', 'gallery', 'media'];
-    
+
     for (const fieldName of imageFieldNames) {
       if (entry[fieldName]) {
         const value = entry[fieldName];
         console.log(`Found "${fieldName}" in entry:`, value);
         console.log(`  Type:`, typeof value);
         console.log(`  Is array:`, Array.isArray(value));
-        
+
         let urls: string[] = [];
-        
+
         if (Array.isArray(value)) {
           urls = value;
           console.log(`  ✓ Already an array with ${urls.length} items`);
@@ -147,23 +147,23 @@ const SortableRow: React.FC<SortableRowProps> = ({ entry, index, name, fields, o
             console.error('  ✗ Not valid JSON');
           }
         }
-        
+
         const validUrls = urls.filter(url => typeof url === 'string' && url.trim());
         console.log(`  Valid URLs:`, validUrls);
-        
+
         if (validUrls.length > 0) {
           console.log(`  ✓✓✓ FALLBACK SUCCESS: Found ${validUrls.length} images in "${fieldName}":`, validUrls);
           return { url: validUrls[0], allUrls: validUrls, isMultiple: true };
         }
       }
     }
-    
+
     // If we found a single media field, return it
     if (singleMediaField) {
       console.log('=== Returning single media field ===', singleMediaField);
       return singleMediaField;
     }
-    
+
     console.log('=== No image field found ===');
     return null;
   };
@@ -214,14 +214,14 @@ const SortableRow: React.FC<SortableRowProps> = ({ entry, index, name, fields, o
               urls = [value];
             }
           }
-          
+
           const validUrls = urls.filter(url => typeof url === 'string' && url.trim());
-          
+
           if (validUrls.length > 0) {
             return (
               <button
                 onClick={() => onImageClick(validUrls, 0)}
-                className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-800 hover:ring-2 hover:ring-blue-500 transition"
+                className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-800 hover:ring-2 hover:ring-blue-500 transition flex-shrink-0"
               >
                 <img
                   src={validUrls[0]}
@@ -243,7 +243,7 @@ const SortableRow: React.FC<SortableRowProps> = ({ entry, index, name, fields, o
             return (
               <button
                 onClick={() => onImageClick([value], 0)}
-                className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 hover:ring-2 hover:ring-blue-500 transition"
+                className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 hover:ring-2 hover:ring-blue-500 transition flex-shrink-0"
               >
                 <img
                   src={value}
@@ -255,23 +255,23 @@ const SortableRow: React.FC<SortableRowProps> = ({ entry, index, name, fields, o
           }
           return '—';
         }
-      
+
       case 'boolean':
         return value ? '✓' : '✗';
-      
+
       case 'date':
-        return new Date(value).toLocaleDateString();
-      
+        return <span className="whitespace-nowrap">{new Date(value).toLocaleDateString()}</span>;
+
       case 'relation':
         // For relations, show the related data in a nice format
         if (Array.isArray(value)) {
           // oneToMany relation - show count with tooltip
           if (value.length === 0) {
-            return <span className="text-gray-400 text-xs">No items</span>;
+            return <span className="text-gray-400 text-xs whitespace-nowrap">No items</span>;
           }
           return (
             <div className="flex items-center space-x-1">
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 whitespace-nowrap">
                 {value.length} {value.length === 1 ? 'item' : 'items'}
               </span>
             </div>
@@ -280,31 +280,33 @@ const SortableRow: React.FC<SortableRowProps> = ({ entry, index, name, fields, o
           // manyToOne or oneToOne relation - show name
           const displayName = value.name || value.title || value.displayName || value.id;
           return (
-            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
+            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 max-w-xs truncate" title={displayName}>
               {displayName}
             </span>
           );
         } else if (value) {
           // Just an ID
           return (
-            <span className="text-gray-500 text-xs font-mono">{value}</span>
+            <span className="text-gray-500 text-xs font-mono truncate max-w-xs block" title={value}>{value}</span>
           );
         }
         return <span className="text-gray-400 text-xs">—</span>;
-      
+
       case 'json':
         if (typeof value === 'object') {
-          return JSON.stringify(value).substring(0, 50) + '...';
+          const jsonStr = JSON.stringify(value);
+          return <span className="truncate block max-w-xs" title={jsonStr}>{jsonStr}</span>;
         }
-        return value;
-      
+        return <span className="truncate block max-w-xs" title={value}>{value}</span>;
+
       case 'richtext':
       case 'text':
         const textValue = String(value);
-        return textValue.length > 50 ? textValue.substring(0, 50) + '...' : textValue;
-      
+        return <span className="truncate block max-w-xs" title={textValue}>{textValue}</span>;
+
       default:
-        return String(value);
+        const stringValue = String(value);
+        return <span className="truncate block max-w-xs" title={stringValue}>{stringValue}</span>;
     }
   };
 
@@ -345,12 +347,14 @@ const SortableRow: React.FC<SortableRowProps> = ({ entry, index, name, fields, o
       {/* Dynamic Fields */}
       {fields.map((field) => {
         if (!isColumnVisible(field.name)) return null;
-        
+
         const value = entry[field.name];
-        
+
         return (
-          <td key={field.name} className="px-4 py-4 text-sm text-gray-700">
-            {renderFieldValue(field, value)}
+          <td key={field.name} className="px-4 py-4 text-sm text-gray-700 max-w-[10rem]">
+            <div className="truncate">
+              {renderFieldValue(field, value)}
+            </div>
           </td>
         );
       })}
@@ -501,11 +505,10 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({ images, currentIndex, onC
             <button
               key={i}
               onClick={() => setIndex(i)}
-              className={`w-16 h-16 rounded overflow-hidden transition ${
-                i === index 
-                  ? 'ring-2 ring-white scale-110' 
+              className={`w-16 h-16 rounded overflow-hidden transition ${i === index
+                  ? 'ring-2 ring-white scale-110'
                   : 'opacity-60 hover:opacity-100 hover:scale-105'
-              }`}
+                }`}
             >
               <img src={img} alt={`Thumb ${i + 1}`} className="w-full h-full object-cover" />
             </button>
@@ -563,7 +566,7 @@ export default function CollectionList() {
 
   const initializeColumnConfig = () => {
     const fields = collectionType.fields?.fields || [];
-    
+
     // Build default column config based on actual fields
     const defaultColumns: ColumnConfig[] = [
       { key: 'drag', label: 'Drag Handle', visible: true, locked: false },
@@ -644,7 +647,7 @@ export default function CollectionList() {
     if (!confirm('Are you sure you want to delete this entry?')) return;
 
     const toastId = toast.loading('Deleting entry...');
-    
+
     try {
       const response = await fetch(`/api/collections/${name}/${id}`, {
         method: 'DELETE',
@@ -726,7 +729,7 @@ export default function CollectionList() {
     }
 
     const fields = collectionType.fields?.fields || [];
-    
+
     // Create CSV header
     const headers = ['ID', ...fields.map((f: any) => f.displayName)];
     const csvRows = [headers.join(',')];
@@ -737,29 +740,29 @@ export default function CollectionList() {
         entry.id,
         ...fields.map((field: any) => {
           let value = entry[field.name];
-          
+
           // Handle different field types
           if (value === null || value === undefined) {
             return '';
           }
-          
+
           if (field.type === 'media') {
             if (field.multiple && Array.isArray(value)) {
               return `"${value.join('; ')}"`;
             }
             return `"${value}"`;
           }
-          
+
           if (typeof value === 'object') {
             return `"${JSON.stringify(value).replace(/"/g, '""')}"`;
           }
-          
+
           // Escape quotes and wrap in quotes if contains comma
           const stringValue = String(value);
           if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
             return `"${stringValue.replace(/"/g, '""')}"`;
           }
-          
+
           return stringValue;
         })
       ];
@@ -771,14 +774,14 @@ export default function CollectionList() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    
+
     link.setAttribute('href', url);
     link.setAttribute('download', `${name}_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     toast.success(`Exported ${data.length} entries to CSV`);
   };
 
@@ -789,12 +792,12 @@ export default function CollectionList() {
     }
 
     const fields = collectionType.fields?.fields || [];
-    
+
     // Create HTML table for Excel
     let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
     html += '<head><meta charset="utf-8"/></head><body>';
     html += '<table border="1">';
-    
+
     // Header row
     html += '<tr>';
     html += '<th>ID</th>';
@@ -802,19 +805,19 @@ export default function CollectionList() {
       html += `<th>${field.displayName}</th>`;
     });
     html += '</tr>';
-    
+
     // Data rows
     data.forEach(entry => {
       html += '<tr>';
       html += `<td>${entry.id}</td>`;
       fields.forEach((field: any) => {
         let value = entry[field.name];
-        
+
         if (value === null || value === undefined) {
           html += '<td></td>';
           return;
         }
-        
+
         if (field.type === 'media') {
           if (field.multiple && Array.isArray(value)) {
             html += `<td>${value.join('; ')}</td>`;
@@ -829,27 +832,27 @@ export default function CollectionList() {
       });
       html += '</tr>';
     });
-    
+
     html += '</table></body></html>';
-    
+
     // Create and download file
     const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    
+
     link.setAttribute('href', url);
     link.setAttribute('download', `${name}_${new Date().toISOString().split('T')[0]}.xls`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     toast.success(`Exported ${data.length} entries to Excel`);
   };
 
   const handleExport = (format: 'csv' | 'excel', scope: 'selected' | 'all') => {
     let dataToExport: any[];
-    
+
     if (scope === 'selected') {
       if (selectedEntries.size === 0) {
         toast.error('Please select entries to export');
@@ -859,13 +862,13 @@ export default function CollectionList() {
     } else {
       dataToExport = entries;
     }
-    
+
     if (format === 'csv') {
       exportToCSV(dataToExport);
     } else {
       exportToExcel(dataToExport);
     }
-    
+
     setShowExportMenu(false);
   };
 
@@ -994,8 +997,8 @@ export default function CollectionList() {
             </Link>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full">
+          <div className="bg-white rounded-lg shadow overflow-x-auto">
+            <table className="min-w-full table-fixed">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   {isColumnVisible('drag') && (
@@ -1018,8 +1021,10 @@ export default function CollectionList() {
                   {fields.map((field: any) => {
                     if (!isColumnVisible(field.name)) return null;
                     return (
-                      <th key={field.name} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        {field.displayName.toUpperCase()}
+                      <th key={field.name} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase truncate" style={{ maxWidth: '300px' }}>
+                        <div className="truncate" title={field.displayName.toUpperCase()}>
+                          {field.displayName.toUpperCase()}
+                        </div>
                       </th>
                     );
                   })}

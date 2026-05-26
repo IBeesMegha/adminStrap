@@ -12,6 +12,7 @@ interface DynamicFormProps {
   collectionName?: string;
   entryId?: string;
   serverError?: { field: string; message: string } | null;
+  onFormMethodsReady?: (methods: any) => void;
 }
 
 export const DynamicForm: React.FC<DynamicFormProps> = ({
@@ -22,6 +23,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   collectionName,
   entryId,
   serverError,
+  onFormMethodsReady,
 }) => {
   const schema = createValidationSchema(fields);
 
@@ -39,6 +41,13 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     resolver: zodResolver(schema),
     defaultValues: defaultValues || {},
   });
+
+  // Expose form methods to parent component
+  useEffect(() => {
+    if (onFormMethodsReady) {
+      onFormMethodsReady({ setValue, getValues, watch, reset, setError });
+    }
+  }, [onFormMethodsReady, setValue, getValues, watch, reset, setError]);
 
   // Set server error when it changes
   useEffect(() => {

@@ -90,3 +90,15 @@ export function withRole(roles: string[]) {
     });
   };
 }
+
+/**
+ * Higher-order function to wrap API handlers with authentication
+ * Usage: export default authMiddleware(handler);
+ */
+export function authMiddleware(
+  handler: (req: NextApiRequest, res: NextApiResponse) => Promise<void>
+) {
+  return async (req: NextApiRequest, res: NextApiResponse) => {
+    return withAuth(req, res, handler as any);
+  };
+}
