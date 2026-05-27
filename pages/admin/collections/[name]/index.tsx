@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Layout } from '@/components/admin/Layout';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { Plus, Edit, Trash2, GripVertical, X, Settings, Download, FileSpreadsheet } from 'lucide-react';
+import { Plus, Edit, Trash2, GripVertical, X, Settings, Download, Globe } from 'lucide-react';
 import { ColumnConfigModal } from '@/components/admin/ColumnConfigModal';
 import toast from 'react-hot-toast';
 import {
@@ -519,6 +519,16 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({ images, currentIndex, onC
   );
 };
 
+interface Language {
+  id: string;
+  code: string;
+  name: string;
+  nativeName: string | null;
+  flag: string | null;
+  isDefault: boolean;
+  isActive: boolean;
+}
+
 export default function CollectionList() {
   const router = useRouter();
   const { name } = router.query;
@@ -532,6 +542,9 @@ export default function CollectionList() {
   const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>([]);
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [languages, setLanguages] = useState<Language[]>([]);
+  const [currentLang, setCurrentLang] = useState<string>('');
+  const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -542,9 +555,15 @@ export default function CollectionList() {
 
   useEffect(() => {
     if (name) {
-      fetchData();
+      fetchLanguages();
     }
   }, [name]);
+
+  useEffect(() => {
+    if (name && currentLang) {
+      fetchData();
+    }
+  }, [name, currentLang]);
 
   useEffect(() => {
     if (collectionType) {
@@ -612,11 +631,33 @@ export default function CollectionList() {
     localStorage.setItem(`columnConfig_${name}`, JSON.stringify(config));
   };
 
+  const fetchLanguages = async () => {
+    try {
+      const res = await fetch('/api/languages?active=true');
+      const data = await res.json();
+
+      if (res.ok && data.data.length > 0) {
+        setLanguages(data.data);
+        // Set default language as current
+        const defaultLang = data.data.find((l: Language) => l.isDefault);
+        if (defaultLang) {
+          setCurrentLang(defaultLang.code);
+        } else {
+          setCurrentLang(data.data[0].code);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch languages:', error);
+      // Fallback to 'en' if languages fetch fails
+      setCurrentLang('en');
+    }
+  };
+
   const fetchData = async () => {
     try {
       const [typeRes, entriesRes] = await Promise.all([
         fetch(`/api/collection-types/${name}`),
-        fetch(`/api/collections/${name}`),
+        fetch(`/api/collections/${name}?lang=${currentLang}`),
       ]);
 
       const typeData = await typeRes.json();
@@ -629,6 +670,12 @@ export default function CollectionList() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLanguageChange = (langCode: string) => {
+    setCurrentLang(langCode);
+    setSelectedEntries(new Set()); // Clear selection when changing language
+    setIsLangDropdownOpen(false);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -896,6 +943,8 @@ export default function CollectionList() {
 
   const fields = collectionType.fields?.fields || [];
 
+  const currentLanguage = languages.find(lang => lang.code === currentLang);
+
   return (
     <Layout>
       <div className="p-8">
@@ -909,6 +958,77 @@ export default function CollectionList() {
             )}
           </div>
           <div className="flex items-center space-x-3">
+            {/* Language Selector */}
+            {languages.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <Globe size={18} className="text-gray-600" />
+                  <span className="text-sm font-medium text-gray-700">
+                    {currentLanguage?.flag} {currentLanguage?.name || currentLang.toUpperCase()}
+                  </span>
+                  <svg
+                    className={`w-4 h-4 text-gray-600 transition-transform ${isLangDropdownOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {isLangDropdownOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setIsLangDropdownOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                      <div className="p-2">
+                        <div className="text-xs font-semibold text-gray-500 uppercase px-3 py-2">
+                          Filter by Language
+                        </div>
+                        {languages.map((lang) => {
+                          const isCurrent = lang.code === currentLang;
+
+                          return (
+                            <button
+                              key={lang.id}
+                              onClick={() => handleLanguageChange(lang.code)}
+                              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition ${
+                                isCurrent
+                                  ? 'bg-blue-50 text-blue-700'
+                                  : 'text-gray-700 hover:bg-gray-50'
+                              }`}
+                            >
+                              <div className="flex items-center space-x-2">
+                                <span className="text-lg">{lang.flag || '🏳️'}</span>
+                                <span className="font-medium">{lang.name}</span>
+                                {lang.nativeName && lang.nativeName !== lang.name && (
+                                  <span className="text-gray-500">({lang.nativeName})</span>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                {lang.isDefault && (
+                                  <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
+                                    Default
+                                  </span>
+                                )}
+                                {isCurrent && (
+                                  <span className="text-blue-600">✓</span>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
             {selectedEntries.size > 0 && (
               <>
                 <div className="text-sm text-gray-600 px-3 py-2 bg-blue-50 rounded-lg">
@@ -976,7 +1096,7 @@ export default function CollectionList() {
               <span>Configure view</span>
             </button>
             <Link
-              href={`/admin/collections/${name}/new`}
+              href={`/admin/collections/${name}/new?lang=${currentLang}`}
               className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               <Plus size={20} />
@@ -987,9 +1107,11 @@ export default function CollectionList() {
 
         {entries.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-600 mb-4">No entries yet</p>
+            <p className="text-gray-600 mb-4">
+              No entries yet for {currentLanguage?.name || currentLang.toUpperCase()}
+            </p>
             <Link
-              href={`/admin/collections/${name}/new`}
+              href={`/admin/collections/${name}/new?lang=${currentLang}`}
               className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               <Plus size={20} />
@@ -997,7 +1119,21 @@ export default function CollectionList() {
             </Link>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow overflow-x-auto">
+          <>
+            {/* Language Filter Info */}
+            <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+              <div className="flex items-center space-x-2">
+                <Globe size={18} className="text-blue-600" />
+                <span className="text-sm text-blue-900">
+                  Showing <strong>{entries.length}</strong> {entries.length === 1 ? 'entry' : 'entries'} in <strong>{currentLanguage?.name || currentLang.toUpperCase()}</strong>
+                </span>
+              </div>
+              <span className="text-xs text-blue-700">
+                Edit and delete operations will only affect {currentLanguage?.name || currentLang.toUpperCase()} entries
+              </span>
+            </div>
+
+            <div className="bg-white rounded-lg shadow overflow-x-auto">
             <table className="min-w-full table-fixed">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
@@ -1061,6 +1197,7 @@ export default function CollectionList() {
               </DndContext>
             </table>
           </div>
+          </>
         )}
       </div>
 

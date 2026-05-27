@@ -130,3 +130,63 @@ export async function validateLanguage(code: string): Promise<boolean> {
 
   return !!language;
 }
+
+/**
+ * Get all translations for a single type by translation group
+ */
+export async function getSingleTypeTranslations(
+  name: string,
+  translationGroupId: string
+): Promise<any[]> {
+  const translations = await prisma.singleType.findMany({
+    where: {
+      name,
+      translationGroupId,
+    },
+    orderBy: {
+      lang: 'asc',
+    },
+  });
+
+  return translations;
+}
+
+/**
+ * Check if a single type translation exists for a specific language
+ */
+export async function singleTypeTranslationExists(
+  name: string,
+  translationGroupId: string,
+  lang: string
+): Promise<boolean> {
+  const result = await prisma.singleType.findUnique({
+    where: {
+      name_lang: {
+        name,
+        lang,
+      },
+    },
+  });
+
+  return !!result;
+}
+
+/**
+ * Get available translation languages for a single type
+ */
+export async function getSingleTypeAvailableTranslations(
+  name: string,
+  translationGroupId: string
+): Promise<string[]> {
+  const translations = await prisma.singleType.findMany({
+    where: {
+      name,
+      translationGroupId,
+    },
+    select: {
+      lang: true,
+    },
+  });
+
+  return translations.map(t => t.lang);
+}

@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
+import { getDefaultLanguage } from '@/lib/i18n-helpers';
 
 export default async function handler(
   req: NextApiRequest,
@@ -12,8 +13,16 @@ export default async function handler(
   }
 
   try {
+    // Get default language for lookup
+    const lang = typeof req.query.lang === 'string' ? req.query.lang : await getDefaultLanguage();
+
     const singleType = await prisma.singleType.findUnique({
-      where: { name },
+      where: { 
+        name_lang: {
+          name,
+          lang
+        }
+      },
     });
 
     if (!singleType) {

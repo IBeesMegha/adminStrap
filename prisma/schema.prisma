@@ -117,15 +117,23 @@ model CollectionType {
 }
 
 // Single Type Definitions - Stores metadata and data for singleton content
+// Now supports internationalization with translationGroupId and lang
 model SingleType {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  displayName String
-  description String?
-  fields      Json     // Field definitions stored as JSON
-  data        Json?    // Actual content data stored as JSON
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  name               String   // e.g., "home", "about"
+  displayName        String
+  description        String?
+  fields             Json     // Field definitions stored as JSON
+  data               Json?    // Actual content data stored as JSON
+  translationGroupId String   // Groups translations of the same page
+  lang               String   // Language code (e.g., "en", "fr")
+  localeStatus       String   @default("published") // "draft" or "published"
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([name, lang]) // Each page can have one entry per language
+  @@index([translationGroupId])
+  @@index([lang])
 }
 
 // Component Definitions - Stores metadata for reusable components

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
 import { ApiResponse } from '@/lib/types';
+import { getDefaultLanguage, generateTranslationGroupId, validateLanguage } from '@/lib/i18n-helpers';
 
 export default async function handler(
   req: NextApiRequest,
@@ -12,38 +13,45 @@ export default async function handler(
     return res.status(400).json({ error: 'Invalid single type name' });
   }
 
+  // Get lang parameter for filtering
+  const lang = typeof req.query.lang === 'string' ? req.query.lang : await getDefaultLanguage();
+
   try {
     if (req.method === 'GET') {
-      // Get specific single type by name (not slug!)
+      // Get specific single type by name and language
       const singleType = await prisma.singleType.findUnique({
-        where: { name: name }, // Use name parameter from URL, not slug from data
+        where: { 
+          name_lang: {
+            name: name,
+            lang: lang
+          }
+        },
       });
 
       if (!singleType) {
-        return res.status(404).json({ error: 'Single type not found' });
+        return res.status(404).json({ error: 'Single type not found for this language' });
       }
 
-      console.log(`[Single Type API GET] Found single type: ${singleType.name}`);
+      console.log(`[Single Type API GET] Found single type: ${singleType.name} (${singleType.lang})`);
 
-      // Return only the data content, not the schema fields
-      // The schema is available via /api/single-types endpoint for admin purposes
-      // const response: any = {
-      //   id: singleType.id,
-      //   name: singleType.name,
-      //   displayName: singleType.displayName,
-      //   description: singleType.description,
-      //   data: singleType.data,
-      //   createdAt: singleType.createdAt,
-      //   updatedAt: singleType.updatedAt,
-      // };
+      // Return the full single type object including schema fields
+      const response: any = {
+        id: singleType.id,
+        name: singleType.name,
+        displayName: singleType.displayName,
+        description: singleType.description,
+        data: singleType.data,
+        translationGroupId: singleType.translationGroupId,
+        lang: singleType.lang,
+        localeStatus: singleType.localeStatus,
+        createdAt: singleType.createdAt,
+        updatedAt: singleType.updatedAt,
+      };
 
-      // Only include fields if explicitly requested (for admin UI)
-      // const includeFields = req.query.includeFields === 'true';
-      // if (includeFields) {
-      //   response.fields = singleType.fields;
-      // }
+      // Always include fields for admin UI
+      response.fields = singleType.fields;
 
-      return res.status(200).json({ data: singleType.data });
+      return res.status(200).json({ data: response });
     }
 
     if (req.method === 'PUT') {
@@ -57,7 +65,12 @@ export default async function handler(
       if (data !== undefined) updateData.data = data;
 
       const singleType = await prisma.singleType.update({
-        where: { name },
+        where: { 
+          name_lang: {
+            name: name,
+            lang: lang
+          }
+        },
         data: updateData,
       });
 
@@ -65,12 +78,65 @@ export default async function handler(
     }
 
     if (req.method === 'DELETE') {
-      // Delete single type
+      // Delete single type for specific language
       await prisma.singleType.delete({
-        where: { name },
+        where: { 
+          name_lang: {
+            name: name,
+            lang: lang
+          }
+        },
       });
 
       return res.status(200).json({ message: 'Single type deleted' });
+    }
+
+    if (req.method === 'POST') {
+      // Create a new translation for existing single type
+      const { displayName, description, fields, data, lang: requestLang, translationGroupId } = req.body;
+
+      if (!requestLang) {
+        return res.status(400).json({ error: 'Language is required for creating translation' });
+      }
+
+      if (!translationGroupId) {
+        return res.status(400).json({ error: 'Translation group ID is required' });
+      }
+
+      // Validate language
+      if (!(await validateLanguage(requestLang))) {
+        return res.status(400).json({ error: 'Invalid or inactive language' });
+      }
+
+      // Check if translation already exists
+      const existing = await prisma.singleType.findUnique({
+        where: {
+          name_lang: {
+            name: name,
+            lang: requestLang
+          }
+        }
+      });
+
+      if (existing) {
+        return res.status(400).json({ error: `Translation for ${requestLang} already exists` });
+      }
+
+      // Create new translation
+      const newTranslation = await prisma.singleType.create({
+        data: {
+          name,
+          displayName: displayName || name,
+          description,
+          fields,
+          data,
+          translationGroupId,
+          lang: requestLang,
+          localeStatus: 'published',
+        },
+      });
+
+      return res.status(201).json({ data: newTranslation });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
