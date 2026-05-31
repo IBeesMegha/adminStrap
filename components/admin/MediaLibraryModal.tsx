@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import NextImage from 'next/image';
 import { X, Upload, Link as LinkIcon, Image as ImageIcon, Trash2, Edit, Folder, FolderPlus, ChevronRight } from 'lucide-react';
 import { MediaAsset, mediaApi } from '@/lib/media';
 
@@ -429,12 +430,14 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
                                 : 'border-gray-200 hover:border-gray-300'
                             }`}
                           >
-                            <div className="aspect-square bg-gray-100 flex items-center justify-center">
+                            <div className="aspect-square bg-gray-100 flex items-center justify-center relative">
                               {asset.mime.startsWith('image/') ? (
-                                <img
+                                <NextImage
                                   src={asset.url}
                                   alt={asset.alternativeText || asset.name}
-                                  className="w-full h-full object-cover"
+                                  fill
+                                  className="object-cover"
+                                  sizes="(max-width: 768px) 50vw, 25vw"
                                 />
                               ) : (
                                 <ImageIcon size={32} className="text-gray-400" />
@@ -604,6 +607,7 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
                             </button>
                             <div className="aspect-square bg-gray-100 rounded mb-2 flex items-center justify-center overflow-hidden">
                               {file.type.startsWith('image/') ? (
+                                // eslint-disable-next-line @next/next/no-img-element
                                 <img
                                   src={URL.createObjectURL(file)}
                                   alt={file.name}
