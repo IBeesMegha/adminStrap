@@ -294,9 +294,9 @@ export default function AdminDashboard() {
                   dataKey="date"
                   tickFormatter={(date) => format(new Date(date), 'MMM dd')}
                   stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
+                  tick={{ fontSize: 12 }}
                 />
-                <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                <YAxis stroke="#9CA3AF" tick={{ fontSize: 12 }} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#fff',
@@ -368,9 +368,9 @@ export default function AdminDashboard() {
                   <XAxis
                     dataKey="displayName"
                     stroke="#9CA3AF"
-                    style={{ fontSize: '12px' }}
+                    tick={{ fontSize: 12 }}
                   />
-                  <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                  <YAxis stroke="#9CA3AF" tick={{ fontSize: 12 }} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: '#fff',
@@ -398,12 +398,12 @@ export default function AdminDashboard() {
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={stats.mediaDistribution} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis type="number" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                  <XAxis type="number" stroke="#9CA3AF" tick={{ fontSize: 12 }} />
                   <YAxis
                     type="category"
                     dataKey="type"
                     stroke="#9CA3AF"
-                    style={{ fontSize: '12px' }}
+                    tick={{ fontSize: 12 }}
                   />
                   <Tooltip
                     contentStyle={{
