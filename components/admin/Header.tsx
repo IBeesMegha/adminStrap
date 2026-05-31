@@ -211,7 +211,7 @@ export const Header: React.FC = () => {
               <div className="absolute mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                 <div className="px-4 py-6 text-center text-gray-500">
                   <Search className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                  <p className="text-sm">No results found for "{searchQuery}"</p>
+                  <p className="text-sm">No results found for &quot;{searchQuery}&quot;</p>
                 </div>
               </div>
             )}

@@ -92,7 +92,7 @@ export default function SyncMediaPage() {
             <h2 className="text-xl font-semibold mb-4">Sync Files</h2>
             <p className="text-gray-600 mb-4">
               This will scan the <code className="bg-gray-100 px-2 py-1 rounded">public/uploads</code> directory
-              and add all files to the database that aren't already there.
+              and add all files to the database that aren&apos;t already there.
             </p>
             <button
               onClick={syncMedia}

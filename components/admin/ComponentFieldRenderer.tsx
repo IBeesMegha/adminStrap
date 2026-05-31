@@ -327,7 +327,7 @@ export const ComponentFieldRenderer: React.FC<ComponentFieldRendererProps> = ({
   if (!componentDef) {
     return (
       <div className="p-4 border border-red-300 rounded-lg bg-red-50">
-        <p className="text-sm text-red-600">Component "{field.componentRef}" not found</p>
+        <p className="text-sm text-red-600">Component &quot;{field.componentRef}&quot; not found</p>
       </div>
     );
   }

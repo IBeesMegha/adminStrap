@@ -183,7 +183,7 @@ export default function SingleTypeEdit() {
               Single type not found
             </h2>
             <p className="text-red-700 mb-4">
-              The single type "{name}" could not be found for language "{currentLang}". Please check:
+              The single type &quot;{name}&quot; could not be found for language &quot;{currentLang}&quot;. Please check:
             </p>
             <ul className="list-disc list-inside text-red-700 space-y-1 mb-4">
               <li>The single type exists in the database</li>

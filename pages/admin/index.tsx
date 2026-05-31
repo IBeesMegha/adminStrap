@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Layout } from '@/components/admin/Layout';
 import { DashboardSkeleton } from '@/components/admin/DashboardSkeleton';
 import {
@@ -186,7 +187,7 @@ export default function AdminDashboard() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
             <p className="text-gray-600">
-              Welcome back! Here's what's happening with your CMS today.
+              Welcome back! Here&apos;s what&apos;s happening with your CMS today.
             </p>
           </div>
           <div className="flex items-center space-x-3">
@@ -508,27 +509,27 @@ export default function AdminDashboard() {
         <div className="mt-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg p-8 text-white">
           <h2 className="text-2xl font-bold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <a
+            <Link
               href="/admin/content-type-builder"
               className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg p-4 transition-all flex items-center justify-between group"
             >
               <span className="font-medium">Create Content Type</span>
               <ArrowUpRight className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-            </a>
-            <a
+            </Link>
+            <Link
               href="/admin/settings/users"
               className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg p-4 transition-all flex items-center justify-between group"
             >
               <span className="font-medium">Manage Users</span>
               <ArrowUpRight className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-            </a>
-            <a
+            </Link>
+            <Link
               href="/admin/media-library"
               className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg p-4 transition-all flex items-center justify-between group"
             >
               <span className="font-medium">Upload Media</span>
               <ArrowUpRight className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-            </a>
+            </Link>
           </div>
         </div>
       </div>

@@ -235,7 +235,7 @@ export const DynamicZoneFieldRenderer: React.FC<DynamicZoneFieldRendererProps> =
       {instances.length === 0 ? (
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
           <p className="text-sm text-gray-500">No components added yet</p>
-          <p className="text-xs text-gray-400 mt-1">Click "Add component" to get started</p>
+        <p className="text-xs text-gray-400 mt-1">Click &quot;Add component&quot; to get started</p>
         </div>
       ) : (
         <div className="space-y-3">
