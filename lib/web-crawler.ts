@@ -218,7 +218,7 @@ export async function crawlWebsite(
     maxDepth?: number;
   } = {}
 ): Promise<CrawlResult> {
-  const maxPages = options.maxPages || 100;
+  const maxPages = options.maxPages || 10000; // Increased from 100 to 10000
   const maxDepth = options.maxDepth || 3;
   
   const baseDomain = getBaseDomain(websiteUrl);

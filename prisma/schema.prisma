@@ -201,40 +201,80 @@ model Language {
 
 // KnowledgeSource - Stores knowledge sources like websites
 model KnowledgeSource {
-  id           String          @id @default(cuid())
+  id           String           @id @default(cuid())
   name         String
-  websiteUrl   String          @unique
-  status       String          @default("pending") // pending, crawling, completed, failed
-  totalPages   Int             @default(0)
+  websiteUrl   String           @unique
+  status       String           @default("pending") // pending, crawling, completed, failed
+  totalPages   Int              @default(0)
+  totalChunks  Int              @default(0)
   lastCrawlAt  DateTime?
   errorMessage String?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
   pages        KnowledgePage[]
+  chunks       KnowledgeChunk[]
 
   @@map("knowledge_sources")
 }
 
 // KnowledgePage - Stores individual crawled pages
 model KnowledgePage {
-  id               String          @id @default(cuid())
+  id               String           @id @default(cuid())
   sourceId         String
-  source           KnowledgeSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  source           KnowledgeSource  @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   url              String
   pageTitle        String?
-  textContent      String          @db.Text
-  htmlContent      String          @db.Text
-  contentLength    Int             @default(0)
-  crawlStatus      String          @default("discovered") // discovered, crawled, failed
+  textContent      String           @db.Text
+  htmlContent      String           @db.Text
+  contentLength    Int              @default(0)
+  crawlStatus      String           @default("discovered") // discovered, crawled, failed
+  processingStatus String           @default("pending") // pending, processing, completed, failed
   errorMessage     String?
   lastCrawledAt    DateTime?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  lastProcessedAt  DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  chunks           KnowledgeChunk[]
 
   @@unique([sourceId, url])
   @@index([sourceId])
   @@index([url])
+  @@index([processingStatus])
   @@map("knowledge_pages")
+}
+
+// KnowledgeChunk - Stores text chunks with embeddings for semantic search
+model KnowledgeChunk {
+  id         String        @id @default(cuid())
+  sourceId   String
+  source     KnowledgeSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  pageId     String
+  page       KnowledgePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  chunkText  String        @db.Text
+  chunkIndex Int
+  tokenCount Int           @default(0)
+  embedding  Float[]       // Vector embedding for semantic search
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([sourceId])
+  @@index([pageId])
+  @@index([chunkIndex])
+  @@map("knowledge_chunks")
+}
+
+// KnowledgeSettings - Stores configuration for knowledge base processing
+model KnowledgeSettings {
+  id                  String   @id @default(cuid())
+  chunkSize           Int      @default(800) // Number of words per chunk
+  chunkOverlap        Int      @default(100) // Number of overlapping words
+  similarityThreshold Float    @default(0.7) // Minimum similarity score
+  maxSearchResults    Int      @default(10) // Maximum results to return
+  embeddingModel      String   @default("sentence-transformers/all-MiniLM-L6-v2") // Hugging Face model
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("knowledge_settings")
 }
 
 // ============================================================================

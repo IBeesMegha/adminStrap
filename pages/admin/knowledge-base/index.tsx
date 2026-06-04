@@ -11,6 +11,10 @@ import {
   CheckCircle,
   XCircle,
   Loader,
+  FileText,
+  Activity,
+  Search,
+  Settings,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -164,6 +168,60 @@ export default function KnowledgeBasePage() {
           >
             <Plus size={20} />
             <span>Add Knowledge Source</span>
+          </Link>
+        </div>
+
+        {/* Navigation Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <Link href="/admin/knowledge-base">
+            <div className="bg-white rounded-lg shadow-sm border-2 border-blue-600 p-4 hover:shadow-md transition-shadow cursor-pointer">
+              <div className="flex items-center space-x-3 mb-2">
+                <Globe className="text-blue-600" size={24} />
+                <span className="font-semibold text-gray-900">Sources</span>
+              </div>
+              <p className="text-xs text-gray-600">Manage knowledge sources</p>
+            </div>
+          </Link>
+
+          <Link href="/admin/knowledge-base/documents">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md hover:border-blue-400 transition-all cursor-pointer">
+              <div className="flex items-center space-x-3 mb-2">
+                <FileText className="text-gray-600" size={24} />
+                <span className="font-semibold text-gray-900">Documents</span>
+              </div>
+              <p className="text-xs text-gray-600">View crawled pages</p>
+            </div>
+          </Link>
+
+          <Link href="/admin/knowledge-base/search-test">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md hover:border-blue-400 transition-all cursor-pointer">
+              <div className="flex items-center space-x-3 mb-2">
+                <Search className="text-gray-600" size={24} />
+                <span className="font-semibold text-gray-900">Search Testing</span>
+              </div>
+              <p className="text-xs text-gray-600">Test semantic search</p>
+            </div>
+          </Link>
+
+          <Link href="/admin/knowledge-base/processing">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md hover:border-blue-400 transition-all cursor-pointer">
+              <div className="flex items-center space-x-3 mb-2">
+                <Activity className="text-gray-600" size={24} />
+                <span className="font-semibold text-gray-900">Processing Jobs</span>
+              </div>
+              <p className="text-xs text-gray-600">Monitor processing</p>
+            </div>
+          </Link>
+        </div>
+
+        {/* Settings Link */}
+        <div className="mb-8">
+          <Link
+            href="/admin/knowledge-base/settings"
+            className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <Settings size={18} />
+            <span className="text-sm font-medium">Configure Settings</span>
           </Link>
         </div>
 

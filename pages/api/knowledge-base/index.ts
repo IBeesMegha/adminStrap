@@ -124,7 +124,7 @@ async function performCrawl(sourceId: string, websiteUrl: string) {
 
     // Perform the crawl
     const result = await crawlWebsite(websiteUrl, {
-      maxPages: 100,
+      maxPages: 10000, // Increased from 100 to 10000
       maxDepth: 3,
     });
 
@@ -165,6 +165,11 @@ async function performCrawl(sourceId: string, websiteUrl: string) {
 
     console.log(`[CRAWL SUCCESS] Source ${sourceId} completed`);
 
+    // Trigger processing in background (don't await)
+    triggerProcessing(sourceId).catch(err => 
+      console.error('[CRAWL] Error triggering processing:', err)
+    );
+
   } catch (error) {
     console.error('[CRAWL ERROR]', error);
 
@@ -176,6 +181,32 @@ async function performCrawl(sourceId: string, websiteUrl: string) {
         errorMessage: error instanceof Error ? error.message : 'Unknown error occurred',
       },
     }).catch(err => console.error('Error updating failed status:', err));
+  }
+}
+
+/**
+ * Trigger background processing for a source
+ */
+async function triggerProcessing(sourceId: string) {
+  try {
+    console.log(`[PROCESSING] Triggering background processing for source: ${sourceId}`);
+    
+    // Call the process API internally
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/knowledge-base/process?sourceId=${sourceId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Processing API returned ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log(`[PROCESSING] Background processing result:`, result);
+  } catch (error) {
+    console.error('[PROCESSING] Error:', error);
   }
 }
 
