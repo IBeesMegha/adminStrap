@@ -25,6 +25,7 @@
     "@hookform/resolvers": "^3.3.4",
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^3.0.3",
+    "cheerio": "^1.2.0",
     "ckeditor5": "^46.0.0",
     "clsx": "^2.1.1",
     "cookie": "^1.1.1",
@@ -44,6 +45,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/cheerio": "^0.22.35",
     "@types/cookie": "^0.6.0",
     "@types/formidable": "^3.5.1",
     "@types/jsonwebtoken": "^9.0.10",

@@ -43,6 +43,14 @@ const PERMISSIONS = [
   
   // Schema
   { name: 'Manage Schema', slug: 'schema.manage', module: 'schema', description: 'Manage content types and schema' },
+  
+  // Knowledge Base
+  { name: 'View Knowledge Base', slug: 'knowledge.read', module: 'knowledge', description: 'View knowledge base sources' },
+  { name: 'Create Knowledge Base', slug: 'knowledge.create', module: 'knowledge', description: 'Create knowledge sources' },
+  { name: 'Update Knowledge Base', slug: 'knowledge.update', module: 'knowledge', description: 'Update knowledge sources' },
+  { name: 'Delete Knowledge Base', slug: 'knowledge.delete', module: 'knowledge', description: 'Delete knowledge sources' },
+  { name: 'Crawl Websites', slug: 'knowledge.crawl', module: 'knowledge', description: 'Crawl and index websites' },
+  { name: 'Chat with Knowledge Base', slug: 'knowledge.chat', module: 'knowledge', description: 'Use AI chat with knowledge base' },
 ];
 
 // Define roles with their permissions
@@ -73,6 +81,12 @@ const ROLES = [
       'media.upload',
       'media.delete',
       'settings.manage',
+      'knowledge.read',
+      'knowledge.create',
+      'knowledge.update',
+      'knowledge.delete',
+      'knowledge.crawl',
+      'knowledge.chat',
     ],
   },
   {
@@ -88,6 +102,8 @@ const ROLES = [
       'content.publish',
       'media.read',
       'media.upload',
+      'knowledge.read',
+      'knowledge.chat',
     ],
   },
   {
@@ -232,7 +248,16 @@ async function main() {
   
   console.log(`\n✅ Created ${LANGUAGES.length} languages\n`);
   
+
+
+  console.log('\n✅ Sample components created\n');
+  
   console.log('🎉 Database seed completed successfully!');
+  console.log('\n📋 Summary:');
+  console.log(`  • ${PERMISSIONS.length} permissions`);
+  console.log(`  • ${ROLES.length} roles`);
+  console.log(`  • 1 super admin user`);
+  console.log(`  • ${LANGUAGES.length} languages`);
 }
 
 main()

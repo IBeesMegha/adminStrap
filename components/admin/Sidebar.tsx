@@ -12,6 +12,7 @@ import {
   Users,
   Shield,
   Globe,
+  Brain,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -33,6 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [collectionTypesOpen, setCollectionTypesOpen] = React.useState(true);
   const [singleTypesOpen, setSingleTypesOpen] = React.useState(true);
   const [contentTypeBuilderOpen, setContentTypeBuilderOpen] = React.useState(false);
+  const [aiAgentsOpen, setAiAgentsOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
 
   const isActive = (path: string) => router.pathname === path;
@@ -56,6 +58,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
     if (router.pathname.startsWith('/admin/content-type-builder')) {
       setContentTypeBuilderOpen(true);
+    }
+    if (router.pathname.startsWith('/admin/knowledge-base')) {
+      setAiAgentsOpen(true);
     }
     if (router.pathname.startsWith('/admin/settings')) {
       setSettingsOpen(true);
@@ -276,6 +281,48 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
           </div>
         )}
+
+        {/* AI Agents */}
+        <div className="pt-4 border-t border-gray-700">
+          <button
+            onClick={() => setAiAgentsOpen(!aiAgentsOpen)}
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition ${
+              router.pathname.startsWith('/admin/knowledge-base')
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-300 hover:bg-gray-800'
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <Brain size={20} />
+              <span>AI Agents</span>
+            </div>
+            <svg
+              className={`w-4 h-4 transition-transform ${
+                aiAgentsOpen ? 'rotate-180' : ''
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {aiAgentsOpen && (
+            <div className="ml-8 mt-2 space-y-1">
+              <Link
+                href="/admin/knowledge-base"
+                className={`block px-3 py-2 text-sm rounded-lg transition ${
+                  router.pathname === '/admin/knowledge-base'
+                    ? 'bg-gray-800 text-white'
+                    : 'text-gray-300 hover:bg-gray-800'
+                }`}
+              >
+                Knowledge Base
+              </Link>
+            </div>
+          )}
+        </div>
 
         {/* Settings */}
         {hasAnyPermission(['settings.manage', 'users.read', 'roles.read']) && (

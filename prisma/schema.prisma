@@ -196,6 +196,48 @@ model Language {
 }
 
 // ============================================================================
+// KNOWLEDGE BASE TABLES
+// ============================================================================
+
+// KnowledgeSource - Stores knowledge sources like websites
+model KnowledgeSource {
+  id           String          @id @default(cuid())
+  name         String
+  websiteUrl   String          @unique
+  status       String          @default("pending") // pending, crawling, completed, failed
+  totalPages   Int             @default(0)
+  lastCrawlAt  DateTime?
+  errorMessage String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  pages        KnowledgePage[]
+
+  @@map("knowledge_sources")
+}
+
+// KnowledgePage - Stores individual crawled pages
+model KnowledgePage {
+  id               String          @id @default(cuid())
+  sourceId         String
+  source           KnowledgeSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  url              String
+  pageTitle        String?
+  textContent      String          @db.Text
+  htmlContent      String          @db.Text
+  contentLength    Int             @default(0)
+  crawlStatus      String          @default("discovered") // discovered, crawled, failed
+  errorMessage     String?
+  lastCrawledAt    DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@unique([sourceId, url])
+  @@index([sourceId])
+  @@index([url])
+  @@map("knowledge_pages")
+}
+
+// ============================================================================
 // IMPORTANT: DO NOT ADD DYNAMIC CONTENT MODELS BELOW THIS LINE
 // ============================================================================
 // Dynamic content tables (Blog, News, Product, etc.) are managed at runtime.
