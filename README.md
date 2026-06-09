@@ -1,6 +1,88 @@
 # Next.js Dynamic CMS
 
-A full-stack, Strapi-like CMS built with Next.js, PostgreSQL, Prisma, and TypeScript. Features a dynamic Content-Type Builder with **runtime table creation** - no schema modifications or server restarts needed.
+A full-stack, Strapi-like CMS built with Next.js, PostgreSQL, Prisma, and TypeScript. Features a dynamic Content-Type Builder with **runtime table creation**, **knowledge base with RAG (Retrieval-Augmented Generation)**, **RBAC**, and **i18n** support.
+
+---
+
+## 🚀 Quick Start (Fresh Clone)
+
+### Prerequisites
+
+| Requirement | Version |
+|-------------|---------|
+| Node.js | 18+ |
+| PostgreSQL | 12+ |
+| npm | any recent |
+
+### Step-by-Step Setup
+
+```bash
+# 1. Clone & install
+git clone <repo-url>
+cd nextjs-cms
+npm install
+
+# 2. Configure environment variables
+cp .env.example .env
+```
+
+### Required Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:root@localhost:5433/strap_admin` |
+| `JWT_ACCESS_SECRET` | Secret for signing access tokens | *(change in production)* |
+| `JWT_REFRESH_SECRET` | Secret for signing refresh tokens | *(change in production)* |
+
+### Optional Environment Variables
+
+| Variable | Description | Required For |
+|----------|-------------|--------------|
+| `HUGGINGFACE_API_KEY` | HuggingFace API key (free tier) | Embeddings + LLM answer generation |
+| `GROQ_API_KEY` | Groq API key (fallback LLM) | LLM answer generation (if HF unavailable) |
+
+> **Note:** At least one of `HUGGINGFACE_API_KEY` or `GROQ_API_KEY` is required for knowledge base search (AI-generated answers). If neither is set, the search API will throw an error.
+
+### Initialize Database
+
+```bash
+# 3. Generate Prisma client
+npx prisma generate
+
+# 4. Run migrations (creates core system tables only)
+npx prisma migrate dev
+
+# 5. Seed the database (creates roles, permissions, languages, and super admin)
+npx prisma db seed
+```
+
+### Default Super Admin Credentials
+
+After seeding, you can log in with:
+- **Email:** `admin@example.com`
+- **Password:** `Admin@123`
+
+> **Important:** Change these credentials immediately after first login in production.
+
+### Start Development
+
+```bash
+# 6. Start dev server
+npm run dev
+```
+
+Open [http://localhost:3000/admin](http://localhost:3000/admin) to access the admin panel.
+
+### What the Seed Creates
+
+| Item | Count | Details |
+|------|-------|---------|
+| Permissions | 30+ | Dashboard, Users, Roles, Content, Media, KB, i18n |
+| Roles | 2 | Super Admin (full access), Editor (content-only) |
+| Users | 1 | Super admin (`admin@example.com` / `Admin@123`) |
+| Languages | 3 | English (default), Hindi, French |
+
+---
 
 ## 🚀 Key Features
 
