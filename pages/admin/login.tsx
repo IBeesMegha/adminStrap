@@ -11,6 +11,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Eye, EyeOff, Lock, Mail, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/context/ThemeContext';
 import toast from 'react-hot-toast';
 
 // Validation schema
@@ -26,6 +27,8 @@ export default function LoginPage() {
   const { login, isAuthenticated, loading: authLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { theme } = useTheme();
 
   const {
     register,
@@ -70,17 +73,33 @@ export default function LoginPage() {
     return null;
   }
 
+  const loginBgStyle = theme?.loginBackground
+    ? { backgroundImage: `url(${theme.loginBackground})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : {};
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 relative"
+      style={Object.keys(loginBgStyle).length ? loginBgStyle : { background: 'linear-gradient(to bottom right, #111827, #1f2937, #111827)' }}
+    >
+      {theme?.loginBackground && <div className="absolute inset-0 bg-black/50" />}
+      <div className="max-w-md w-full space-y-8 relative z-10">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-blue-600 rounded-xl flex items-center justify-center mb-4">
-            <Lock className="h-8 w-8 text-white" />
-          </div>
-          <h2 className="text-3xl font-bold text-white">CMS Admin Panel</h2>
+          {theme?.loginLogo ? (
+            <div className="mx-auto flex items-center justify-center mb-4">
+              <img src={theme.loginLogo} alt="Logo" className="max-h-16" />
+            </div>
+          ) : (
+            <div className="mx-auto h-16 w-16 bg-blue-600 rounded-xl flex items-center justify-center mb-4">
+              <Lock className="h-8 w-8 text-white" />
+            </div>
+          )}
+          <h2 className="text-3xl font-bold text-white">
+            {theme?.loginTitle || 'CMS Admin Panel'}
+          </h2>
           <p className="mt-2 text-sm text-gray-400">
-            Sign in to access your dashboard
+            {theme?.loginSubtitle || 'Sign in to access your dashboard'}
           </p>
         </div>
 

@@ -281,6 +281,49 @@ model KnowledgeSettings {
 }
 
 // ============================================================================
+// THEME SETTINGS
+// ============================================================================
+
+// ThemeSettings - Stores branding and appearance configuration
+// Only one active record should exist at a time
+model ThemeSettings {
+  id                 String   @id @default(cuid())
+  primaryColor       String   @default("#2563eb")
+  secondaryColor     String   @default("#0f172a")
+  accentColor        String   @default("#14b8a6")
+  successColor       String   @default("#10b981")
+  warningColor       String   @default("#f59e0b")
+  errorColor         String   @default("#ef4444")
+  backgroundColor    String   @default("#f3f4f6")
+  cardBackgroundColor String  @default("#ffffff")
+  sidebarBackgroundColor String @default("#111827")
+  headerBackgroundColor String @default("#ffffff")
+  textColor          String   @default("#111827")
+  borderColor        String   @default("#e5e7eb")
+  primaryLogo        String?
+  darkLogo           String?
+  favicon            String?
+  loginLogo          String?
+  loginBackground    String?
+  loginTitle         String?
+  loginSubtitle      String?
+  fontFamily         String   @default("Inter")
+  fontScale          String   @default("1rem")
+  headingWeight      String   @default("700")
+  bodyWeight         String   @default("400")
+  sidebarWidth       String   @default("16rem")
+  borderRadius       String   @default("0.5rem")
+  buttonRadius       String   @default("0.375rem")
+  cardRadius         String   @default("0.5rem")
+  compactMode        Boolean  @default(false)
+  customCss          String?  @db.Text
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("theme_settings")
+}
+
+// ============================================================================
 // IMPORTANT: DO NOT ADD DYNAMIC CONTENT MODELS BELOW THIS LINE
 // ============================================================================
 // Dynamic content tables (Blog, News, Product, etc.) are managed at runtime.

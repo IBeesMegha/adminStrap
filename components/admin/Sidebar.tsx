@@ -13,6 +13,7 @@ import {
   Shield,
   Globe,
   Brain,
+  Palette,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -39,12 +40,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const isActive = (path: string) => router.pathname === path;
 
-  // Handle client-side mounting
   React.useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Auto-expand sections based on current route
   React.useEffect(() => {
     if (!mounted) return;
     
@@ -67,23 +66,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   }, [router.pathname, mounted]);
 
+  const textColor = 'var(--sidebar-text-color, #f3f4f6)';
+  const textMuted = { color: 'var(--sidebar-text-muted, #9ca3af)' };
+
   return (
-    <div className="w-64 bg-gray-900 text-white h-screen overflow-y-auto">
+    <div className="w-64 h-screen overflow-y-auto flex-shrink-0" style={{ backgroundColor: 'var(--sidebar-background-color)' }}>
       <div className="p-6">
-        <h1 className="text-2xl font-bold">CMS Admin</h1>
+        <h1 className="text-2xl font-bold" style={{ color: textColor }}>CMS Admin</h1>
       </div>
 
       <nav className="px-4 space-y-6">
-        {/* Dashboard */}
         {hasPermission('dashboard.read') && (
           <div>
             <Link
               href="/admin"
               className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition ${
                 isActive('/admin')
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800'
+                  ? 'text-white'
+                  : 'hover:bg-white/10'
               }`}
+              style={{ color: isActive('/admin') ? '#fff' : textMuted.color }}
             >
               <Home size={20} />
               <span>Dashboard</span>
@@ -91,16 +93,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        {/* Media Library */}
         {hasPermission('media.read') && (
           <div>
             <Link
               href="/admin/media-library"
               className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition ${
                 isActive('/admin/media-library')
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800'
+                  ? 'text-white'
+                  : 'hover:bg-white/10'
               }`}
+              style={{ color: isActive('/admin/media-library') ? '#fff' : textMuted.color }}
             >
               <ImageIcon size={20} />
               <span>Media Library</span>
@@ -108,12 +110,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        {/* Content Manager */}
         {hasPermission('content.read') && (
           <div>
             <button
               onClick={() => setContentManagerOpen(!contentManagerOpen)}
-              className="w-full flex items-center justify-between px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-lg transition"
+              className="w-full flex items-center justify-between px-3 py-2 hover:bg-white/10 rounded-lg transition"
+              style={{ color: textMuted.color }}
             >
               <div className="flex items-center space-x-3">
                 <Database size={20} />
@@ -133,11 +135,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             {contentManagerOpen && (
               <div className="mt-2 space-y-2">
-                {/* Collection Types Dropdown */}
                 <div>
                   <button
                     onClick={() => setCollectionTypesOpen(!collectionTypesOpen)}
-                    className="w-full flex items-center justify-between px-3 py-2 ml-6 text-sm text-gray-400 hover:text-gray-300"
+                    className="w-full flex items-center justify-between px-3 py-2 ml-6 text-sm hover:text-white"
+                    style={{ color: textMuted.color }}
                   >
                     <span className="uppercase font-semibold">Collection Types</span>
                     <svg
@@ -160,9 +162,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           href={`/admin/collections/${ct.name}`}
                           className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition ${
                             router.query.name === ct.name && router.pathname.startsWith('/admin/collections/')
-                              ? 'bg-gray-800 text-white'
-                              : 'text-gray-300 hover:bg-gray-800'
+                              ? 'bg-white/10 text-white'
+                              : 'hover:bg-white/10'
                           }`}
+                          style={{ color: (router.query.name === ct.name && router.pathname.startsWith('/admin/collections/')) ? '#fff' : textMuted.color }}
                         >
                           <Database size={16} />
                           <span className="text-sm">{ct.displayName}</span>
@@ -172,11 +175,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   )}
                 </div>
 
-                {/* Single Types Dropdown */}
                 <div>
                   <button
                     onClick={() => setSingleTypesOpen(!singleTypesOpen)}
-                    className="w-full flex items-center justify-between px-3 py-2 ml-6 text-sm text-gray-400 hover:text-gray-300"
+                    className="w-full flex items-center justify-between px-3 py-2 ml-6 text-sm hover:text-white"
+                    style={{ color: textMuted.color }}
                   >
                     <span className="uppercase font-semibold">Single Types</span>
                     <svg
@@ -199,9 +202,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           href={`/admin/singles/${st.name}`}
                           className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition ${
                             router.query.name === st.name && router.pathname.startsWith('/admin/singles/')
-                              ? 'bg-gray-800 text-white'
-                              : 'text-gray-300 hover:bg-gray-800'
+                              ? 'bg-white/10 text-white'
+                              : 'hover:bg-white/10'
                           }`}
+                          style={{ color: (router.query.name === st.name && router.pathname.startsWith('/admin/singles/')) ? '#fff' : textMuted.color }}
                         >
                           <FileText size={16} />
                           <span className="text-sm">{st.displayName}</span>
@@ -215,16 +219,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        {/* Content Type Builder */}
         {hasPermission('schema.manage') && (
           <div className="pt-4 border-t border-gray-700">
             <button
               onClick={() => setContentTypeBuilderOpen(!contentTypeBuilderOpen)}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition ${
-                router.pathname.startsWith('/admin/content-type-builder')
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800'
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition hover:bg-white/10 ${
+                router.pathname.startsWith('/admin/content-type-builder') ? 'text-white' : ''
               }`}
+              style={{ color: router.pathname.startsWith('/admin/content-type-builder') ? '#fff' : textMuted.color }}
             >
               <div className="flex items-center space-x-3">
                 <Settings size={20} />
@@ -246,34 +248,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="ml-8 mt-2 space-y-1">
                 <Link
                   href="/admin/content-type-builder/collection-types"
-                  className={`block px-3 py-2 text-sm rounded-lg transition ${
+                  className={`block px-3 py-2 text-sm rounded-lg transition hover:bg-white/10 ${
                     router.pathname === '/admin/content-type-builder/collection-types' ||
                     router.pathname.startsWith('/admin/content-type-builder/edit/')
-                      ? 'bg-gray-800 text-white'
-                      : 'text-gray-300 hover:bg-gray-800'
+                      ? 'bg-white/10 text-white'
+                      : ''
                   }`}
+                  style={{ color: (router.pathname === '/admin/content-type-builder/collection-types' || router.pathname.startsWith('/admin/content-type-builder/edit/')) ? '#fff' : textMuted.color }}
                 >
                   Collection Types
                 </Link>
 
                 <Link
                   href="/admin/content-type-builder/single-types"
-                  className={`block px-3 py-2 text-sm rounded-lg transition ${
+                  className={`block px-3 py-2 text-sm rounded-lg transition hover:bg-white/10 ${
                     router.pathname === '/admin/content-type-builder/single-types'
-                      ? 'bg-gray-800 text-white'
-                      : 'text-gray-300 hover:bg-gray-800'
+                      ? 'bg-white/10 text-white'
+                      : ''
                   }`}
+                  style={{ color: router.pathname === '/admin/content-type-builder/single-types' ? '#fff' : textMuted.color }}
                 >
                   Single Types
                 </Link>
 
                 <Link
                   href="/admin/content-type-builder/components"
-                  className={`block px-3 py-2 text-sm rounded-lg transition ${
+                  className={`block px-3 py-2 text-sm rounded-lg transition hover:bg-white/10 ${
                     router.pathname === '/admin/content-type-builder/components'
-                      ? 'bg-gray-800 text-white'
-                      : 'text-gray-300 hover:bg-gray-800'
+                      ? 'bg-white/10 text-white'
+                      : ''
                   }`}
+                  style={{ color: router.pathname === '/admin/content-type-builder/components' ? '#fff' : textMuted.color }}
                 >
                   Components
                 </Link>
@@ -282,15 +287,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        {/* AI Agents */}
         <div className="pt-4 border-t border-gray-700">
           <button
             onClick={() => setAiAgentsOpen(!aiAgentsOpen)}
-            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition ${
-              router.pathname.startsWith('/admin/knowledge-base')
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:bg-gray-800'
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition hover:bg-white/10 ${
+              router.pathname.startsWith('/admin/knowledge-base') ? 'text-white' : ''
             }`}
+            style={{ color: router.pathname.startsWith('/admin/knowledge-base') ? '#fff' : textMuted.color }}
           >
             <div className="flex items-center space-x-3">
               <Brain size={20} />
@@ -312,11 +315,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="ml-8 mt-2 space-y-1">
               <Link
                 href="/admin/knowledge-base"
-                className={`block px-3 py-2 text-sm rounded-lg transition ${
+                className={`block px-3 py-2 text-sm rounded-lg transition hover:bg-white/10 ${
                   router.pathname === '/admin/knowledge-base'
-                    ? 'bg-gray-800 text-white'
-                    : 'text-gray-300 hover:bg-gray-800'
+                    ? 'bg-white/10 text-white'
+                    : ''
                 }`}
+                style={{ color: router.pathname === '/admin/knowledge-base' ? '#fff' : textMuted.color }}
               >
                 Knowledge Base
               </Link>
@@ -324,16 +328,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {/* Settings */}
         {hasAnyPermission(['settings.manage', 'users.read', 'roles.read']) && (
           <div className="pt-4 border-t border-gray-700">
             <button
               onClick={() => setSettingsOpen(!settingsOpen)}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition ${
-                router.pathname.startsWith('/admin/settings')
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800'
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition hover:bg-white/10 ${
+                router.pathname.startsWith('/admin/settings') ? 'text-white' : ''
               }`}
+              style={{ color: router.pathname.startsWith('/admin/settings') ? '#fff' : textMuted.color }}
             >
               <div className="flex items-center space-x-3">
                 <Settings size={20} />
@@ -356,11 +358,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {hasPermission('users.read') && (
                   <Link
                     href="/admin/settings/users"
-                    className={`flex items-center space-x-2 px-3 py-2 text-sm rounded-lg transition ${
-                      router.pathname === '/admin/settings/users'
-                        ? 'bg-gray-800 text-white'
-                        : 'text-gray-300 hover:bg-gray-800'
+                    className={`flex items-center space-x-2 px-3 py-2 text-sm rounded-lg transition hover:bg-white/10 ${
+                      router.pathname === '/admin/settings/users' ? 'bg-white/10 text-white' : ''
                     }`}
+                    style={{ color: router.pathname === '/admin/settings/users' ? '#fff' : textMuted.color }}
                   >
                     <Users size={16} />
                     <span>Users</span>
@@ -370,11 +371,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {hasPermission('roles.read') && (
                   <Link
                     href="/admin/settings/roles"
-                    className={`flex items-center space-x-2 px-3 py-2 text-sm rounded-lg transition ${
-                      router.pathname === '/admin/settings/roles'
-                        ? 'bg-gray-800 text-white'
-                        : 'text-gray-300 hover:bg-gray-800'
+                    className={`flex items-center space-x-2 px-3 py-2 text-sm rounded-lg transition hover:bg-white/10 ${
+                      router.pathname === '/admin/settings/roles' ? 'bg-white/10 text-white' : ''
                     }`}
+                    style={{ color: router.pathname === '/admin/settings/roles' ? '#fff' : textMuted.color }}
                   >
                     <Shield size={16} />
                     <span>Roles & Permissions</span>
@@ -384,14 +384,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {hasPermission('settings.manage') && (
                   <Link
                     href="/admin/settings/internationalization"
-                    className={`flex items-center space-x-2 px-3 py-2 text-sm rounded-lg transition ${
-                      router.pathname === '/admin/settings/internationalization'
-                        ? 'bg-gray-800 text-white'
-                        : 'text-gray-300 hover:bg-gray-800'
+                    className={`flex items-center space-x-2 px-3 py-2 text-sm rounded-lg transition hover:bg-white/10 ${
+                      router.pathname === '/admin/settings/internationalization' ? 'bg-white/10 text-white' : ''
                     }`}
+                    style={{ color: router.pathname === '/admin/settings/internationalization' ? '#fff' : textMuted.color }}
                   >
                     <Globe size={16} />
                     <span>Internationalization</span>
+                  </Link>
+                )}
+
+                {hasPermission('settings.manage') && (
+                  <Link
+                    href="/admin/settings/theme"
+                    className={`flex items-center space-x-2 px-3 py-2 text-sm rounded-lg transition hover:bg-white/10 ${
+                      router.pathname === '/admin/settings/theme' ? 'bg-white/10 text-white' : ''
+                    }`}
+                    style={{ color: router.pathname === '/admin/settings/theme' ? '#fff' : textMuted.color }}
+                  >
+                    <Palette size={16} />
+                    <span>Theme Settings</span>
                   </Link>
                 )}
               </div>

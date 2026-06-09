@@ -6,6 +6,29 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
+
+  --primary-color: #2563eb;
+  --secondary-color: #0f172a;
+  --accent-color: #14b8a6;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --error-color: #ef4444;
+  --background-color: #f3f4f6;
+  --card-background-color: #ffffff;
+  --sidebar-background-color: #111827;
+  --header-background-color: #ffffff;
+  --text-color: #111827;
+  --border-color: #e5e7eb;
+  --font-family: Inter;
+  --font-size-base: 1rem;
+  --heading-font-weight: 700;
+  --body-font-weight: 400;
+  --sidebar-width: 16rem;
+  --border-radius: 0.5rem;
+  --button-radius: 0.375rem;
+  --card-radius: 0.5rem;
+  --sidebar-text-color: #f3f4f6;
+  --sidebar-text-muted: #9ca3af;
 }
 
 body {

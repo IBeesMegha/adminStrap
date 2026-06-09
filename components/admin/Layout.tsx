@@ -41,10 +41,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   if (!mounted) {
     return (
       <ProtectedRoute>
-        <div className="flex h-screen bg-gray-100">
-          <div className="w-64 bg-gray-900"></div>
+        <div className="flex h-screen" style={{ backgroundColor: 'var(--background-color)' }}>
+          <div className="w-64" style={{ backgroundColor: 'var(--sidebar-background-color)' }}></div>
           <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="bg-white border-b border-gray-200 h-16"></div>
+            <div style={{ backgroundColor: 'var(--header-background-color)', borderBottom: '1px solid var(--border-color)' }} className="h-16"></div>
             <main className="flex-1 overflow-y-auto">
               {children}
             </main>
@@ -56,7 +56,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <ProtectedRoute>
-      <div className="flex h-screen bg-gray-100">
+      <div className="flex h-screen" style={{ backgroundColor: 'var(--background-color)' }}>
         <Sidebar
           collectionTypes={collectionTypes}
           singleTypes={singleTypes}

@@ -22,7 +22,6 @@ export const Header: React.FC = () => {
   const searchRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
@@ -37,7 +36,6 @@ export const Header: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Global search functionality
   useEffect(() => {
     const performSearch = async () => {
       if (searchQuery.trim().length < 2) {
@@ -58,7 +56,6 @@ export const Header: React.FC = () => {
 
         const results: SearchResult[] = [];
 
-        // Search in collections
         collections.data?.forEach((item: any) => {
           if (
             item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -73,7 +70,6 @@ export const Header: React.FC = () => {
           }
         });
 
-        // Search in single types
         singles.data?.forEach((item: any) => {
           if (
             item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -88,7 +84,6 @@ export const Header: React.FC = () => {
           }
         });
 
-        // Search in components
         components.data?.forEach((item: any) => {
           if (
             item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -156,14 +151,15 @@ export const Header: React.FC = () => {
     }
   };
 
+  const themeBorder = '1px solid var(--border-color)';
+
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
+    <header style={{ backgroundColor: 'var(--header-background-color)', borderBottom: themeBorder }} className="sticky top-0 z-40">
       <div className="flex items-center justify-between px-6 py-4">
-        {/* Search Bar */}
         <div className="flex-1 max-w-2xl" ref={searchRef}>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
+              <Search className="h-5 w-5" style={{ color: 'var(--text-color)' }} />
             </div>
             <input
               type="text"
@@ -171,26 +167,29 @@ export const Header: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => searchQuery.length >= 2 && setShowSearchResults(true)}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="block w-full pl-10 pr-3 py-2 rounded-lg leading-5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              style={{ backgroundColor: 'var(--card-background-color)', border: themeBorder, color: 'var(--text-color)' }}
             />
 
-            {/* Search Results Dropdown */}
             {showSearchResults && searchResults.length > 0 && (
-              <div className="absolute mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-y-auto z-50">
+              <div className="absolute mt-2 w-full rounded-lg shadow-lg max-h-96 overflow-y-auto z-50"
+                style={{ backgroundColor: 'var(--card-background-color)', border: themeBorder }}>
                 <div className="py-2">
                   {searchResults.map((result, index) => (
                     <button
                       key={`${result.type}-${result.name}-${index}`}
                       onClick={() => handleSearchResultClick(result.url)}
-                      className="w-full px-4 py-3 hover:bg-gray-50 flex items-center justify-between transition-colors"
+                      className="w-full px-4 py-3 flex items-center justify-between transition-colors hover:bg-black/5"
                     >
                       <div className="flex items-center space-x-3">
                         <span className="text-2xl">{getTypeIcon(result.type)}</span>
                         <div className="text-left">
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm font-medium" style={{ color: 'var(--text-color)' }}>
                             {result.displayName}
                           </p>
-                          <p className="text-xs text-gray-500">{result.name}</p>
+                          <p className="text-xs" style={{ color: 'var(--text-color)' }}>
+                            {result.name}
+                          </p>
                         </div>
                       </div>
                       <span
@@ -206,11 +205,11 @@ export const Header: React.FC = () => {
               </div>
             )}
 
-            {/* No Results */}
             {showSearchResults && searchQuery.length >= 2 && searchResults.length === 0 && (
-              <div className="absolute mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                <div className="px-4 py-6 text-center text-gray-500">
-                  <Search className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+              <div className="absolute mt-2 w-full rounded-lg shadow-lg z-50"
+                style={{ backgroundColor: 'var(--card-background-color)', border: themeBorder }}>
+                <div className="px-4 py-6 text-center" style={{ color: 'var(--text-color)' }}>
+                  <Search className="h-8 w-8 mx-auto mb-2" style={{ color: 'var(--text-color)' }} />
                   <p className="text-sm">No results found for &quot;{searchQuery}&quot;</p>
                 </div>
               </div>
@@ -218,33 +217,34 @@ export const Header: React.FC = () => {
           </div>
         </div>
 
-        {/* Profile Menu */}
         <div className="ml-6 relative" ref={profileRef}>
           <button
             onClick={() => setShowProfileMenu(!showProfileMenu)}
-            className="flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-black/5 transition-colors"
           >
-            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: 'var(--primary-color)' }}>
               <User className="h-5 w-5 text-white" />
             </div>
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-medium" style={{ color: 'var(--text-color)' }}>
               {user?.name || 'Admin User'}
             </span>
             <ChevronDown
-              className={`h-4 w-4 text-gray-500 transition-transform ${
+              className={`h-4 w-4 transition-transform ${
                 showProfileMenu ? 'rotate-180' : ''
               }`}
+              style={{ color: 'var(--text-color)' }}
             />
           </button>
 
-          {/* Profile Dropdown Menu */}
           {showProfileMenu && (
-            <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-              <div className="px-4 py-3 border-b border-gray-100">
-                <p className="text-sm font-medium text-gray-900">
+            <div className="absolute right-0 mt-2 w-56 rounded-lg shadow-lg py-2 z-50"
+              style={{ backgroundColor: 'var(--card-background-color)', border: themeBorder }}>
+              <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border-color)' }}>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-color)' }}>
                   {user?.name || 'Admin User'}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs mt-1" style={{ color: 'var(--text-color)' }}>
                   {user?.email || 'admin@example.com'}
                 </p>
               </div>
@@ -254,9 +254,10 @@ export const Header: React.FC = () => {
                   router.push('/admin/profile');
                   setShowProfileMenu(false);
                 }}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-3 transition-colors"
+                className="w-full px-4 py-2 text-left text-sm hover:bg-black/5 flex items-center space-x-3 transition-colors"
+                style={{ color: 'var(--text-color)' }}
               >
-                <User className="h-4 w-4 text-gray-500" />
+                <User className="h-4 w-4" style={{ color: 'var(--text-color)' }} />
                 <span>Profile</span>
               </button>
 
@@ -265,16 +266,18 @@ export const Header: React.FC = () => {
                   router.push('/admin/settings');
                   setShowProfileMenu(false);
                 }}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-3 transition-colors"
+                className="w-full px-4 py-2 text-left text-sm hover:bg-black/5 flex items-center space-x-3 transition-colors"
+                style={{ color: 'var(--text-color)' }}
               >
-                <Settings className="h-4 w-4 text-gray-500" />
+                <Settings className="h-4 w-4" style={{ color: 'var(--text-color)' }} />
                 <span>Settings</span>
               </button>
 
-              <div className="border-t border-gray-100 mt-2 pt-2">
+              <div className="border-t mt-2 pt-2" style={{ borderColor: 'var(--border-color)' }}>
                 <button
                   onClick={handleSignOut}
-                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-3 transition-colors"
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 flex items-center space-x-3 transition-colors"
+                  style={{ color: 'var(--error-color)' }}
                 >
                   <LogOut className="h-4 w-4" />
                   <span>Sign Out</span>
