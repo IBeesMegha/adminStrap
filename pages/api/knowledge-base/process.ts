@@ -84,6 +84,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
               chunkText: chunk.chunkText,
               chunkIndex: chunk.chunkIndex,
               tokenCount: chunk.tokenCount,
+              sectionHeading: chunk.sectionHeading,
               embedding: chunk.embedding,
             },
           });
@@ -146,13 +147,26 @@ async function getOrCreateSettings() {
   if (!settings) {
     settings = await prisma.knowledgeSettings.create({
       data: {
-        chunkSize: 800,
-        chunkOverlap: 100,
+        chunkSize: 500,
+        chunkOverlap: 50,
         similarityThreshold: 0.7,
         maxSearchResults: 10,
-        embeddingModel: 'sentence-transformers/all-MiniLM-L6-v2',
+        embeddingModel: 'BAAI/bge-base-en-v1.5',
+        rerankerModel: 'BAAI/bge-reranker-base',
+        llmModel: 'Qwen/Qwen3-4B-Instruct-2507',
       },
     });
+  } else {
+    const updateData: any = {};
+    if (settings.llmModel === 'Qwen/Qwen3-8B-Instruct') {
+      updateData.llmModel = 'Qwen/Qwen3-4B-Instruct-2507';
+    }
+    if (Object.keys(updateData).length > 0) {
+      settings = await prisma.knowledgeSettings.update({
+        where: { id: settings.id },
+        data: updateData,
+      });
+    }
   }
 
   return settings;

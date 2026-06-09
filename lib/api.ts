@@ -1,5 +1,6 @@
 // API utility functions for frontend
 import toast from 'react-hot-toast';
+import { fetchWithAuth } from './api-client';
 
 export class ApiClient {
   private baseUrl: string;
@@ -17,7 +18,7 @@ export class ApiClient {
     const url = `${this.baseUrl}${endpoint}`;
     
     try {
-      const response = await fetch(url, {
+      const response = await fetchWithAuth(url, {
         ...options,
         headers: {
           'Content-Type': 'application/json',

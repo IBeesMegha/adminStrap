@@ -23,8 +23,8 @@ const postData = JSON.stringify({
 });
 
 const options = {
-  hostname: 'api-inference.huggingface.co',
-  path: `/pipeline/feature-extraction/${model}`,
+  hostname: 'router.huggingface.co',
+  path: `/hf-inference/pipeline/feature-extraction/${model}`,
   method: 'POST',
   headers: {
     'Authorization': `Bearer ${apiKey}`,

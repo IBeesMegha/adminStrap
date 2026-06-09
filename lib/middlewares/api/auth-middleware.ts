@@ -30,11 +30,22 @@ export async function withAuth(
       return res.status(401).json({
         success: false,
         error: 'Authentication required',
+        code: 'NO_TOKEN',
       });
     }
 
     // Verify token
-    const decoded = verifyAccessToken(accessToken);
+    let decoded;
+    try {
+      decoded = verifyAccessToken(accessToken);
+    } catch (error) {
+      // Token is invalid or expired
+      return res.status(401).json({
+        success: false,
+        error: 'Token expired or invalid',
+        code: 'TOKEN_EXPIRED',
+      });
+    }
 
     // Get user from database with permissions
     const user = await getUserWithPermissions(decoded.userId);
@@ -43,6 +54,7 @@ export async function withAuth(
       return res.status(401).json({
         success: false,
         error: 'User not found',
+        code: 'USER_NOT_FOUND',
       });
     }
 
@@ -50,6 +62,7 @@ export async function withAuth(
       return res.status(403).json({
         success: false,
         error: 'Account is deactivated',
+        code: 'ACCOUNT_DEACTIVATED',
       });
     }
 
@@ -62,7 +75,8 @@ export async function withAuth(
     console.error('Auth middleware error:', error);
     return res.status(401).json({
       success: false,
-      error: 'Invalid or expired token',
+      error: 'Authentication failed',
+      code: 'AUTH_ERROR',
     });
   }
 }

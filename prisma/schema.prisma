@@ -245,17 +245,18 @@ model KnowledgePage {
 
 // KnowledgeChunk - Stores text chunks with embeddings for semantic search
 model KnowledgeChunk {
-  id         String        @id @default(cuid())
-  sourceId   String
-  source     KnowledgeSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-  pageId     String
-  page       KnowledgePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  chunkText  String        @db.Text
-  chunkIndex Int
-  tokenCount Int           @default(0)
-  embedding  Float[]       // Vector embedding for semantic search
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  id             String        @id @default(cuid())
+  sourceId       String
+  source         KnowledgeSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  pageId         String
+  page           KnowledgePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  chunkText      String        @db.Text
+  chunkIndex     Int
+  tokenCount     Int           @default(0)
+  sectionHeading String?       // Heading/section title this chunk belongs to
+  embedding      Float[]       // Vector embedding for semantic search (768-dim for BGE)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@index([sourceId])
   @@index([pageId])
@@ -266,11 +267,13 @@ model KnowledgeChunk {
 // KnowledgeSettings - Stores configuration for knowledge base processing
 model KnowledgeSettings {
   id                  String   @id @default(cuid())
-  chunkSize           Int      @default(800) // Number of words per chunk
-  chunkOverlap        Int      @default(100) // Number of overlapping words
+  chunkSize           Int      @default(500) // Number of words per chunk (semantic chunking)
+  chunkOverlap        Int      @default(50) // Number of overlapping words
   similarityThreshold Float    @default(0.7) // Minimum similarity score
   maxSearchResults    Int      @default(10) // Maximum results to return
-  embeddingModel      String   @default("sentence-transformers/all-MiniLM-L6-v2") // Hugging Face model
+  embeddingModel      String   @default("BAAI/bge-base-en-v1.5") // BGE embedding model (768-dim)
+  rerankerModel       String   @default("BAAI/bge-reranker-base") // BGE reranker model
+  llmModel            String   @default("Qwen/Qwen3-8B-Instruct") // LLM for answer generation
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

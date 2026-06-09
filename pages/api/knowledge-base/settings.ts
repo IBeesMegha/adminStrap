@@ -41,6 +41,8 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse) {
       similarityThreshold,
       maxSearchResults,
       embeddingModel,
+      rerankerModel,
+      llmModel,
     } = req.body;
 
     // Validation
@@ -87,6 +89,8 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse) {
     if (similarityThreshold !== undefined) updateData.similarityThreshold = similarityThreshold;
     if (maxSearchResults !== undefined) updateData.maxSearchResults = maxSearchResults;
     if (embeddingModel !== undefined) updateData.embeddingModel = embeddingModel;
+    if (rerankerModel !== undefined) updateData.rerankerModel = rerankerModel;
+    if (llmModel !== undefined) updateData.llmModel = llmModel;
 
     if (settings) {
       // Update existing
@@ -97,13 +101,15 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse) {
     } else {
       // Create new
       settings = await prisma.knowledgeSettings.create({
-        data: {
-          chunkSize: chunkSize || 800,
-          chunkOverlap: chunkOverlap || 100,
-          similarityThreshold: similarityThreshold || 0.7,
-          maxSearchResults: maxSearchResults || 10,
-          embeddingModel: embeddingModel || 'sentence-transformers/all-MiniLM-L6-v2',
-        },
+      data: {
+        chunkSize: chunkSize || 500,
+        chunkOverlap: chunkOverlap || 50,
+        similarityThreshold: similarityThreshold || 0.7,
+        maxSearchResults: maxSearchResults || 10,
+        embeddingModel: embeddingModel || 'BAAI/bge-base-en-v1.5',
+        rerankerModel: rerankerModel || 'BAAI/bge-reranker-base',
+        llmModel: llmModel || 'Qwen/Qwen3-4B-Instruct-2507',
+      },
       });
     }
 
@@ -131,13 +137,26 @@ async function getOrCreateSettings() {
   if (!settings) {
     settings = await prisma.knowledgeSettings.create({
       data: {
-        chunkSize: 800,
-        chunkOverlap: 100,
+        chunkSize: 500,
+        chunkOverlap: 50,
         similarityThreshold: 0.7,
         maxSearchResults: 10,
-        embeddingModel: 'nomic-embed-text',
+        embeddingModel: 'BAAI/bge-base-en-v1.5',
+        rerankerModel: 'BAAI/bge-reranker-base',
+        llmModel: 'Qwen/Qwen3-4B-Instruct-2507',
       },
     });
+  } else {
+    const updateData: any = {};
+    if (settings.llmModel === 'Qwen/Qwen3-8B-Instruct') {
+      updateData.llmModel = 'Qwen/Qwen3-4B-Instruct-2507';
+    }
+    if (Object.keys(updateData).length > 0) {
+      settings = await prisma.knowledgeSettings.update({
+        where: { id: settings.id },
+        data: updateData,
+      });
+    }
   }
 
   return settings;

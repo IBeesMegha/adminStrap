@@ -11,6 +11,8 @@ interface Settings {
   similarityThreshold: number;
   maxSearchResults: number;
   embeddingModel: string;
+  rerankerModel: string;
+  llmModel: string;
 }
 
 export default function SettingsPage() {
@@ -224,13 +226,12 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Embedding Model */}
-            <div className="p-6">
+            {/* AI Models */}
+            <div className="p-6 border-b border-gray-200">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Embedding Model</h2>
               <p className="text-sm text-gray-600 mb-6">
-                Choose the Hugging Face model for generating embeddings
+                Model used for generating vector embeddings (768-dim recommended)
               </p>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Model Name
@@ -240,15 +241,52 @@ export default function SettingsPage() {
                   onChange={(e) => handleChange('embeddingModel', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="sentence-transformers/all-MiniLM-L6-v2">all-MiniLM-L6-v2 (Recommended - Fast, 384D)</option>
-                  <option value="sentence-transformers/all-mpnet-base-v2">all-mpnet-base-v2 (High Quality, 768D)</option>
-                  <option value="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2">Multilingual MiniLM (50+ languages)</option>
+                  <option value="BAAI/bge-base-en-v1.5">BAAI/bge-base-en-v1.5 (Recommended, 768D)</option>
+                  <option value="BAAI/bge-large-en-v1.5">BAAI/bge-large-en-v1.5 (High Quality, 1024D)</option>
+                  <option value="sentence-transformers/all-MiniLM-L6-v2">all-MiniLM-L6-v2 (Fast, 384D)</option>
+                  <option value="sentence-transformers/all-mpnet-base-v2">all-mpnet-base-v2 (768D)</option>
                 </select>
+              </div>
+            </div>
+
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Reranker Model</h2>
+              <p className="text-sm text-gray-600 mb-6">
+                Cross-encoder model that reranks retrieved chunks by relevance
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Model Name
+                </label>
+                <input
+                  type="text"
+                  value={settings.rerankerModel}
+                  onChange={(e) => handleChange('rerankerModel', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
                 <p className="mt-1 text-xs text-gray-500">
-                  Using Hugging Face Inference API (free). Get your API key at: 
-                  <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1">
-                    huggingface.co/settings/tokens
-                  </a>
+                  Default: BAAI/bge-reranker-base
+                </p>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Answer Generation Model</h2>
+              <p className="text-sm text-gray-600 mb-6">
+                LLM used to generate final answers from retrieved context
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Model Name
+                </label>
+                <input
+                  type="text"
+                  value={settings.llmModel}
+                  onChange={(e) => handleChange('llmModel', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Default: Qwen/Qwen3-4B-Instruct-2507. Must be available on Hugging Face Inference Providers.
                 </p>
               </div>
             </div>

@@ -5,6 +5,9 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/router';
+import { fetchWithAuth } from '@/lib/api-client';
+import { useTokenRefresh } from '@/hooks/useTokenRefresh';
+import { useVisibilityRefresh } from '@/hooks/useVisibilityRefresh';
 
 interface Role {
   id: string;
@@ -51,13 +54,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth();
   }, []);
 
+  // Auto-refresh token using custom hook
+  useTokenRefresh({
+    enabled: !!user,
+    refreshIntervalMs: 10 * 60 * 1000, // 10 minutes (before 15min expiry)
+    onRefreshError: () => {
+      // If refresh fails, log user out
+      console.error('[Auth] Token refresh failed, logging out');
+      setUser(null);
+      setPermissions([]);
+      router.push('/admin/login');
+    },
+  });
+
+  // Refresh token when user returns to tab after being away
+  useVisibilityRefresh({
+    enabled: !!user,
+    minAwayTimeMs: 5 * 60 * 1000, // Refresh if away for 5+ minutes
+    onRefresh: () => {
+      // Optionally refresh user data
+      refreshUser();
+    },
+  });
+
   /**
    * Check if user is authenticated
    */
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/auth/me', {
-        credentials: 'include',
+      const response = await fetchWithAuth('/api/auth/me', {
+        method: 'GET',
       });
 
       if (response.ok) {
@@ -134,8 +160,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const refreshUser = async () => {
     try {
-      const response = await fetch('/api/auth/me', {
-        credentials: 'include',
+      const response = await fetchWithAuth('/api/auth/me', {
+        method: 'GET',
       });
 
       if (response.ok) {

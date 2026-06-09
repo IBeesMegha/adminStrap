@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Layout } from '@/components/admin/Layout';
 import { useRouter } from 'next/router';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   ArrowLeft,
   Globe,
@@ -528,7 +530,11 @@ export default function KnowledgeSourceDetailsPage() {
                               : 'bg-gray-100 text-gray-900'
                           }`}
                         >
-                          <p className="whitespace-pre-wrap">{message.content}</p>
+                          <div className="whitespace-pre-wrap">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {message.content}
+                            </ReactMarkdown>
+                          </div>
                           {message.sources && message.sources.length > 0 && (
                             <div className="mt-4 pt-4 border-t border-gray-300">
                               <p className="text-xs font-semibold mb-2">Sources:</p>
