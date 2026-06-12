@@ -43,7 +43,16 @@ import {
   AlertCircle,
   Upload,
   BarChart3,
+  Filter,
+  Download,
+  Tag,
+  ToggleLeft,
+  ToggleRight,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
+import { AddFAQModal } from '@/components/admin/AddFAQModal';
+import { BulkImportFAQModal } from '@/components/admin/BulkImportFAQModal';
 
 type SectionKey =
   | 'overview'
@@ -106,6 +115,19 @@ interface Document {
   updatedAt: Date;
 }
 
+interface FAQ {
+  id: string;
+  question: string;
+  answer: string;
+  status: string;
+  keywords: string[];
+  category: string | null;
+  priority: number;
+  usageCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export default function AIChatbotPage() {
   const router = useRouter();
   const { hasPermission, loading: authLoading } = useAuth();
@@ -116,6 +138,19 @@ export default function AIChatbotPage() {
   const [stats, setStats] = useState<KnowledgeStats | null>(null);
   const [sources, setSources] = useState<KnowledgeSource[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
+  
+  // FAQ State
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [faqStats, setFaqStats] = useState<any>(null);
+  const [faqSearch, setFaqSearch] = useState('');
+  const [faqStatusFilter, setFaqStatusFilter] = useState<string>('');
+  const [faqCategoryFilter, setFaqCategoryFilter] = useState<string>('');
+  const [faqPage, setFaqPage] = useState(1);
+  const [faqTotalPages, setFaqTotalPages] = useState(1);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [isAddFAQModalOpen, setIsAddFAQModalOpen] = useState(false);
+  const [isBulkImportModalOpen, setIsBulkImportModalOpen] = useState(false);
+  const [faqToEdit, setFaqToEdit] = useState<FAQ | null>(null);
 
   useEffect(() => {
     if (!authLoading && !hasPermission('settings.manage')) {
@@ -130,8 +165,10 @@ export default function AIChatbotPage() {
       fetchSources();
     } else if (activeSection === 'pdf-upload' || activeSection === 'docx-upload') {
       fetchDocuments();
+    } else if (activeSection === 'faq-management') {
+      fetchFaqs();
     }
-  }, [activeSection]);
+  }, [activeSection, faqPage, faqSearch, faqStatusFilter, faqCategoryFilter]);
 
   useEffect(() => {
     if (activeSection === 'website-crawl') {
@@ -148,17 +185,21 @@ export default function AIChatbotPage() {
       
       const docsRes = await fetch('/api/knowledge-base/documents');
       const docsData = await docsRes.json();
+      
+      const faqRes = await fetch('/api/faq?limit=0');
+      const faqData = await faqRes.json();
 
-      if (sourcesData.success && docsData.success) {
+      if (sourcesData.success && docsData.success && faqData.success) {
         const sources = sourcesData.data;
         const docs = docsData.data;
+        const faqCount = faqData.pagination.total;
         
         const totalChunks = docs.reduce((sum: number, doc: Document) => sum + doc.totalChunks, 0);
         
         setStats({
           totalSources: sources.length,
           totalDocuments: docs.length,
-          totalFaqs: 0,
+          totalFaqs: faqCount,
           totalChunks: totalChunks,
           embeddingStatus: totalChunks > 0 ? 'Ready' : 'Not Configured',
           lastTrainingDate: docs.length > 0 ? docs[0].lastProcessedAt : null,
@@ -197,6 +238,76 @@ export default function AIChatbotPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchFaqs = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: faqPage.toString(),
+        limit: '10',
+        ...(faqSearch && { search: faqSearch }),
+        ...(faqStatusFilter && { status: faqStatusFilter }),
+        ...(faqCategoryFilter && { category: faqCategoryFilter }),
+      });
+
+      const response = await fetch(`/api/faq?${params}`);
+      const result = await response.json();
+      
+      if (result.success) {
+        setFaqs(result.data);
+        setFaqTotalPages(result.pagination.totalPages);
+        setFaqStats(result.stats);
+        setCategories(result.categories || []);
+      }
+    } catch (error) {
+      console.error('Error fetching FAQs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteFaq = async (id: string, question: string) => {
+    if (!confirm(`Are you sure you want to delete "${question}"?`)) return;
+    try {
+      const response = await fetch(`/api/faq/${id}`, { method: 'DELETE' });
+      const result = await response.json();
+      if (result.success) {
+        toast.success('FAQ deleted successfully');
+        fetchFaqs();
+      } else {
+        toast.error(result.error || 'Failed to delete FAQ');
+      }
+    } catch (error) {
+      console.error('Error deleting FAQ:', error);
+      toast.error('Failed to delete FAQ');
+    }
+  };
+
+  const handleToggleFaqStatus = async (faq: FAQ) => {
+    try {
+      const newStatus = faq.status === 'active' ? 'inactive' : 'active';
+      const response = await fetch(`/api/faq/${faq.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast.success(`FAQ ${newStatus === 'active' ? 'enabled' : 'disabled'}`);
+        fetchFaqs();
+      } else {
+        toast.error(result.error || 'Failed to update FAQ');
+      }
+    } catch (error) {
+      console.error('Error toggling FAQ status:', error);
+      toast.error('Failed to update FAQ');
+    }
+  };
+
+  const handleEditFaq = (faq: FAQ) => {
+    setFaqToEdit(faq);
+    setIsAddFAQModalOpen(true);
   };
 
   const handleDeleteSource = async (id: string, name: string) => {
@@ -438,16 +549,281 @@ export default function AIChatbotPage() {
                       <h2 className="text-2xl font-bold text-gray-900 mb-1">FAQ Management</h2>
                       <p className="text-gray-500 text-sm">Manage frequently asked questions for your chatbot</p>
                     </div>
-                    <button className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                      <Plus size={20} />
-                      <span>Add FAQ</span>
-                    </button>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setIsBulkImportModalOpen(true)}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                      >
+                        <Upload size={20} />
+                        <span>Bulk Import</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setFaqToEdit(null);
+                          setIsAddFAQModalOpen(true);
+                        }}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        <Plus size={20} />
+                        <span>Add FAQ</span>
+                      </button>
+                    </div>
                   </div>
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-                    <FileQuestion className="mx-auto text-gray-400 mb-4" size={48} />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Coming Soon</h3>
-                    <p className="text-gray-600">FAQ management feature will be available soon</p>
+
+                  {/* Stats Cards */}
+                  {faqStats && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                        <p className="text-sm text-gray-500 mb-1">Total FAQs</p>
+                        <p className="text-2xl font-bold text-gray-900">{faqStats.totalFaqs}</p>
+                      </div>
+                      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                        <p className="text-sm text-gray-500 mb-1">Active</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {faqs.filter(f => f.status === 'active').length}
+                        </p>
+                      </div>
+                      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                        <p className="text-sm text-gray-500 mb-1">Inactive</p>
+                        <p className="text-2xl font-bold text-gray-600">
+                          {faqs.filter(f => f.status === 'inactive').length}
+                        </p>
+                      </div>
+                      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                        <p className="text-sm text-gray-500 mb-1">Total Usage</p>
+                        <p className="text-2xl font-bold text-blue-600">{faqStats.totalUsage}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Search and Filters */}
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Search questions..."
+                          value={faqSearch}
+                          onChange={(e) => {
+                            setFaqSearch(e.target.value);
+                            setFaqPage(1);
+                          }}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <select
+                          value={faqStatusFilter}
+                          onChange={(e) => {
+                            setFaqStatusFilter(e.target.value);
+                            setFaqPage(1);
+                          }}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="">All Statuses</option>
+                          <option value="active">Active</option>
+                          <option value="inactive">Inactive</option>
+                        </select>
+                      </div>
+                      <div>
+                        <select
+                          value={faqCategoryFilter}
+                          onChange={(e) => {
+                            setFaqCategoryFilter(e.target.value);
+                            setFaqPage(1);
+                          }}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="">All Categories</option>
+                          {categories.map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* FAQ Table */}
+                  {loading ? (
+                    <div className="flex items-center justify-center h-64 bg-white rounded-lg shadow-sm border border-gray-200">
+                      <Loader className="animate-spin text-blue-600" size={32} />
+                    </div>
+                  ) : faqs.length === 0 ? (
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+                      <FileQuestion className="mx-auto text-gray-400 mb-4" size={48} />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No FAQs Yet</h3>
+                      <p className="text-gray-600 mb-6">Start by adding your first FAQ or import them in bulk</p>
+                      <div className="flex gap-3 justify-center">
+                        <button
+                          onClick={() => setIsBulkImportModalOpen(true)}
+                          className="inline-flex items-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50"
+                        >
+                          <Upload size={20} />
+                          Bulk Import
+                        </button>
+                        <button
+                          onClick={() => {
+                            setFaqToEdit(null);
+                            setIsAddFAQModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        >
+                          <Plus size={20} />
+                          Add FAQ
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-2/5">
+                                Question
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-1/5">
+                                Category
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                Status
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                Usage
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                Priority
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                Created
+                              </th>
+                              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {faqs.map((faq) => (
+                              <tr key={faq.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4">
+                                  <div className="text-sm font-medium text-gray-900 line-clamp-2">
+                                    {faq.question}
+                                  </div>
+                                  {faq.keywords.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {faq.keywords.slice(0, 3).map((keyword) => (
+                                        <span
+                                          key={keyword}
+                                          className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs"
+                                        >
+                                          <Tag size={10} />
+                                          {keyword}
+                                        </span>
+                                      ))}
+                                      {faq.keywords.length > 3 && (
+                                        <span className="text-xs text-gray-500">
+                                          +{faq.keywords.length - 3} more
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className="text-sm text-gray-600">
+                                    {faq.category || '-'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  {faq.status === 'active' ? (
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                      <CheckCircle size={14} />
+                                      Active
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                      <XCircle size={14} />
+                                      Inactive
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {faq.usageCount}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className="text-sm text-gray-600">{faq.priority}</span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {format(new Date(faq.createdAt), 'MMM dd, yyyy')}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <button
+                                      onClick={() => handleToggleFaqStatus(faq)}
+                                      className={`${
+                                        faq.status === 'active'
+                                          ? 'text-gray-600 hover:text-gray-900'
+                                          : 'text-green-600 hover:text-green-900'
+                                      }`}
+                                      title={faq.status === 'active' ? 'Disable' : 'Enable'}
+                                    >
+                                      {faq.status === 'active' ? (
+                                        <ToggleRight size={18} />
+                                      ) : (
+                                        <ToggleLeft size={18} />
+                                      )}
+                                    </button>
+                                    <button
+                                      onClick={() => handleEditFaq(faq)}
+                                      className="text-blue-600 hover:text-blue-900"
+                                      title="Edit"
+                                    >
+                                      <Edit size={18} />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteFaq(faq.id, faq.question)}
+                                      className="text-red-600 hover:text-red-900"
+                                      title="Delete"
+                                    >
+                                      <Trash2 size={18} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Pagination */}
+                      {faqTotalPages > 1 && (
+                        <div className="bg-white border-t border-gray-200 px-6 py-4 flex items-center justify-between rounded-b-lg">
+                          <div className="text-sm text-gray-500">
+                            Page {faqPage} of {faqTotalPages}
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setFaqPage(faqPage - 1)}
+                              disabled={faqPage === 1}
+                              className="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <ChevronLeft size={18} />
+                            </button>
+                            <button
+                              onClick={() => setFaqPage(faqPage + 1)}
+                              disabled={faqPage === faqTotalPages}
+                              className="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <ChevronRight size={18} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
 
@@ -636,6 +1012,33 @@ export default function AIChatbotPage() {
             </div>
           </div>
         </div>
+
+        {/* Modals */}
+        <AddFAQModal
+          isOpen={isAddFAQModalOpen}
+          onClose={() => {
+            setIsAddFAQModalOpen(false);
+            setFaqToEdit(null);
+          }}
+          onSuccess={() => {
+            fetchFaqs();
+            if (activeSection === 'overview') {
+              fetchOverviewStats();
+            }
+          }}
+          faqToEdit={faqToEdit}
+        />
+
+        <BulkImportFAQModal
+          isOpen={isBulkImportModalOpen}
+          onClose={() => setIsBulkImportModalOpen(false)}
+          onSuccess={() => {
+            fetchFaqs();
+            if (activeSection === 'overview') {
+              fetchOverviewStats();
+            }
+          }}
+        />
       </Layout>
     </ProtectedRoute>
   );

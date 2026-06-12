@@ -1,11 +1,3 @@
-// ============================================================================
-// STATIC CMS SCHEMA - DO NOT ADD DYNAMIC MODELS HERE
-// ============================================================================
-// This schema contains ONLY core CMS system tables.
-// Dynamic content tables (Blog, News, etc.) are created at runtime via raw SQL.
-// See lib/dynamic-table-service.ts for dynamic table management.
-// ============================================================================
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -15,69 +7,57 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================================================
-// CORE SYSTEM TABLES
-// ============================================================================
-
-// ============================================================================
-// AUTHENTICATION TABLES
-// ============================================================================
-
-// User - Admin users who can access the CMS
 model User {
   id        String    @id @default(cuid())
   email     String    @unique
-  password  String    // bcrypt hashed password
+  password  String
   name      String
-  roleId    String?
-  role      Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
   isActive  Boolean   @default(true)
-  sessions  Session[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  roleId    String?
+  sessions  Session[]
+  role      Role?     @relation(fields: [roleId], references: [id])
 
   @@index([roleId])
   @@map("users")
 }
 
-// Role - User roles with permissions
 model Role {
   id          String           @id @default(cuid())
   name        String           @unique
   slug        String           @unique
   description String?
-  isSystem    Boolean          @default(false) // System roles cannot be deleted
-  users       User[]
-  permissions RolePermission[]
+  isSystem    Boolean          @default(false)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
+  permissions RolePermission[]
+  users       User[]
 
   @@map("roles")
 }
 
-// Permission - Granular permissions for actions
 model Permission {
   id          String           @id @default(cuid())
   name        String           @unique
-  slug        String           @unique // e.g., "users.create", "content.read"
-  module      String           // e.g., "users", "content", "media"
+  slug        String           @unique
+  module      String
   description String?
-  roles       RolePermission[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
+  roles       RolePermission[]
 
   @@index([module])
   @@map("permissions")
 }
 
-// RolePermission - Many-to-many relationship between roles and permissions
 model RolePermission {
   id           String     @id @default(cuid())
   roleId       String
   permissionId String
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
   createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, permissionId])
   @@index([roleId])
@@ -85,83 +65,72 @@ model RolePermission {
   @@map("role_permissions")
 }
 
-// Session - Stores refresh tokens for authenticated users
 model Session {
   id           String   @id @default(cuid())
   userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  refreshToken String   @unique // hashed refresh token
+  refreshToken String   @unique
   userAgent    String?
   ipAddress    String?
   expiresAt    DateTime
   createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([refreshToken])
   @@map("sessions")
 }
 
-// ============================================================================
-// CMS CONTENT TABLES
-// ============================================================================
-
-// Content Type Definitions - Stores metadata for dynamic collections
 model CollectionType {
   id          String   @id @default(cuid())
   name        String   @unique
   displayName String
   description String?
-  fields      Json     // Field definitions stored as JSON
+  fields      Json
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
-// Single Type Definitions - Stores metadata and data for singleton content
-// Now supports internationalization with translationGroupId and lang
 model SingleType {
   id                 String   @id @default(cuid())
-  name               String   // e.g., "home", "about"
+  name               String
   displayName        String
   description        String?
-  fields             Json     // Field definitions stored as JSON
-  data               Json?    // Actual content data stored as JSON
-  translationGroupId String   // Groups translations of the same page
-  lang               String   // Language code (e.g., "en", "fr")
-  localeStatus       String   @default("published") // "draft" or "published"
+  fields             Json
+  data               Json?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+  lang               String
+  localeStatus       String   @default("published")
+  translationGroupId String
 
-  @@unique([name, lang]) // Each page can have one entry per language
+  @@unique([name, lang])
   @@index([translationGroupId])
   @@index([lang])
 }
 
-// Component Definitions - Stores metadata for reusable components
 model Component {
   id          String           @id @default(cuid())
   name        String           @unique
   displayName String
   category    String
-  fields      Json             // Field definitions stored as JSON
-  entries     ComponentEntry[] // Component instances
+  fields      Json
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
+  entries     ComponentEntry[]
 }
 
-// Component Entries - Stores actual component data instances
 model ComponentEntry {
   id          String    @id @default(cuid())
   componentId String
-  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
-  data        Json      // Component data stored as JSON
+  data        Json
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
 
   @@index([componentId])
   @@map("component_entries")
 }
 
-// Media Library - Stores uploaded media files metadata
 model Media {
   id              String   @id @default(cuid())
   name            String
@@ -173,20 +142,19 @@ model Media {
   width           Int?
   height          Int?
   ext             String
-  folder          String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  folder          String?
 
   @@map("media")
 }
 
-// Language - Stores available languages for internationalization
 model Language {
   id         String   @id @default(cuid())
-  code       String   @unique // e.g., "en", "fr", "de"
-  name       String   // e.g., "English", "French", "German"
-  nativeName String?  // e.g., "English", "Français", "Deutsch"
-  flag       String?  // e.g., "🇺🇸", "🇫🇷", "🇩🇪"
+  code       String   @unique
+  name       String
+  nativeName String?
+  flag       String?
   isDefault  Boolean  @default(false)
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
@@ -195,46 +163,40 @@ model Language {
   @@map("languages")
 }
 
-// ============================================================================
-// KNOWLEDGE BASE TABLES
-// ============================================================================
-
-// KnowledgeSource - Stores knowledge sources like websites
 model KnowledgeSource {
   id           String           @id @default(cuid())
   name         String
   websiteUrl   String           @unique
-  status       String           @default("pending") // pending, crawling, completed, failed
+  status       String           @default("pending")
   totalPages   Int              @default(0)
-  totalChunks  Int              @default(0)
   lastCrawlAt  DateTime?
   errorMessage String?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
-  pages        KnowledgePage[]
+  totalChunks  Int              @default(0)
   chunks       KnowledgeChunk[]
+  pages        KnowledgePage[]
 
   @@map("knowledge_sources")
 }
 
-// KnowledgePage - Stores individual crawled pages
 model KnowledgePage {
   id               String           @id @default(cuid())
   sourceId         String
-  source           KnowledgeSource  @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   url              String
   pageTitle        String?
-  textContent      String           @db.Text
-  htmlContent      String           @db.Text
+  textContent      String
+  htmlContent      String
   contentLength    Int              @default(0)
-  crawlStatus      String           @default("discovered") // discovered, crawled, failed
-  processingStatus String           @default("pending") // pending, processing, completed, failed
+  crawlStatus      String           @default("discovered")
   errorMessage     String?
   lastCrawledAt    DateTime?
-  lastProcessedAt  DateTime?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
+  lastProcessedAt  DateTime?
+  processingStatus String           @default("pending")
   chunks           KnowledgeChunk[]
+  source           KnowledgeSource  @relation(fields: [sourceId], references: [id], onDelete: Cascade)
 
   @@unique([sourceId, url])
   @@index([sourceId])
@@ -243,20 +205,19 @@ model KnowledgePage {
   @@map("knowledge_pages")
 }
 
-// KnowledgeChunk - Stores text chunks with embeddings for semantic search
 model KnowledgeChunk {
-  id             String        @id @default(cuid())
+  id             String          @id @default(cuid())
   sourceId       String
-  source         KnowledgeSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   pageId         String
-  page           KnowledgePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  chunkText      String        @db.Text
+  chunkText      String
   chunkIndex     Int
-  tokenCount     Int           @default(0)
-  sectionHeading String?       // Heading/section title this chunk belongs to
-  embedding      Float[]       // Vector embedding for semantic search (768-dim for BGE)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  tokenCount     Int             @default(0)
+  embedding      Float[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  sectionHeading String?
+  page           KnowledgePage   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  source         KnowledgeSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
 
   @@index([sourceId])
   @@index([pageId])
@@ -264,80 +225,72 @@ model KnowledgeChunk {
   @@map("knowledge_chunks")
 }
 
-// KnowledgeSettings - Stores configuration for knowledge base processing
 model KnowledgeSettings {
   id                  String   @id @default(cuid())
-  chunkSize           Int      @default(500) // Number of words per chunk (semantic chunking)
-  chunkOverlap        Int      @default(50) // Number of overlapping words
-  similarityThreshold Float    @default(0.7) // Minimum similarity score
-  maxSearchResults    Int      @default(10) // Maximum results to return
-  embeddingModel      String   @default("BAAI/bge-base-en-v1.5") // BGE embedding model (768-dim)
-  rerankerModel       String   @default("BAAI/bge-reranker-base") // BGE reranker model
-  llmModel            String   @default("Qwen/Qwen3-8B-Instruct") // LLM for answer generation
+  chunkSize           Int      @default(500)
+  chunkOverlap        Int      @default(50)
+  similarityThreshold Float    @default(0.7)
+  maxSearchResults    Int      @default(10)
+  embeddingModel      String   @default("BAAI/bge-base-en-v1.5")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+  llmModel            String   @default("Qwen/Qwen3-8B-Instruct")
+  rerankerModel       String   @default("BAAI/bge-reranker-base")
 
   @@map("knowledge_settings")
 }
 
-// ============================================================================
-// THEME SETTINGS
-// ============================================================================
+model FAQ {
+  id         String   @id @default(cuid())
+  question   String
+  answer     String
+  status     String   @default("active")
+  usageCount Int      @default(0)
+  keywords   String[]
+  category   String?
+  priority   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-// ThemeSettings - Stores branding and appearance configuration
-// Only one active record should exist at a time
+  @@index([status])
+  @@index([category])
+  @@index([priority])
+  @@map("faqs")
+}
+
 model ThemeSettings {
-  id                 String   @id @default(cuid())
-  primaryColor       String   @default("#2563eb")
-  secondaryColor     String   @default("#0f172a")
-  accentColor        String   @default("#14b8a6")
-  successColor       String   @default("#10b981")
-  warningColor       String   @default("#f59e0b")
-  errorColor         String   @default("#ef4444")
-  backgroundColor    String   @default("#f3f4f6")
-  cardBackgroundColor String  @default("#ffffff")
-  sidebarBackgroundColor String @default("#111827")
-  headerBackgroundColor String @default("#ffffff")
-  textColor          String   @default("#111827")
-  borderColor        String   @default("#e5e7eb")
-  primaryLogo        String?
-  darkLogo           String?
-  favicon            String?
-  loginLogo          String?
-  loginBackground    String?
-  loginTitle         String?
-  loginSubtitle      String?
-  fontFamily         String   @default("Inter")
-  fontScale          String   @default("1rem")
-  headingWeight      String   @default("700")
-  bodyWeight         String   @default("400")
-  sidebarWidth       String   @default("16rem")
-  borderRadius       String   @default("0.5rem")
-  buttonRadius       String   @default("0.375rem")
-  cardRadius         String   @default("0.5rem")
-  compactMode        Boolean  @default(false)
-  customCss          String?  @db.Text
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  primaryColor           String   @default("#2563eb")
+  secondaryColor         String   @default("#0f172a")
+  accentColor            String   @default("#14b8a6")
+  successColor           String   @default("#10b981")
+  warningColor           String   @default("#f59e0b")
+  errorColor             String   @default("#ef4444")
+  backgroundColor        String   @default("#f3f4f6")
+  cardBackgroundColor    String   @default("#ffffff")
+  sidebarBackgroundColor String   @default("#111827")
+  headerBackgroundColor  String   @default("#ffffff")
+  textColor              String   @default("#111827")
+  borderColor            String   @default("#e5e7eb")
+  primaryLogo            String?
+  darkLogo               String?
+  favicon                String?
+  loginLogo              String?
+  loginBackground        String?
+  loginTitle             String?
+  loginSubtitle          String?
+  fontFamily             String   @default("Inter")
+  fontScale              String   @default("1rem")
+  headingWeight          String   @default("700")
+  bodyWeight             String   @default("400")
+  sidebarWidth           String   @default("16rem")
+  borderRadius           String   @default("0.5rem")
+  buttonRadius           String   @default("0.375rem")
+  cardRadius             String   @default("0.5rem")
+  compactMode            Boolean  @default(false)
+  customCss              String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   @@map("theme_settings")
 }
-
-// ============================================================================
-// IMPORTANT: DO NOT ADD DYNAMIC CONTENT MODELS BELOW THIS LINE
-// ============================================================================
-// Dynamic content tables (Blog, News, Product, etc.) are managed at runtime.
-// They are NOT part of this schema file.
-// 
-// To create a dynamic table:
-//   1. Create a CollectionType via the admin UI or API
-//   2. The system automatically creates the SQL table using raw queries
-//   3. No Prisma model is generated
-//   4. Query using lib/dynamic-prisma.ts functions
-//
-// This approach ensures:
-//   ✓ Fresh clones don't recreate deleted content tables
-//   ✓ Schema stays clean and maintainable
-//   ✓ No migration conflicts from dynamic models
-//   ✓ Prisma only manages core CMS infrastructure
-// ============================================================================

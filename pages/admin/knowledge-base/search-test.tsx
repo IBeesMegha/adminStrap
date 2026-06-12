@@ -23,6 +23,10 @@ interface RAGResponse {
   supportingChunks: SupportingChunk[];
   totalRetrieved: number;
   totalAfterRerank: number;
+  source?: 'faq' | 'rag';
+  faqQuestion?: string;
+  faqId?: string;
+  relevanceScore?: number;
 }
 
 export default function SearchTestPage() {
@@ -59,13 +63,19 @@ export default function SearchTestPage() {
           supportingChunks: result.supportingChunks || [],
           totalRetrieved: result.totalRetrieved || 0,
           totalAfterRerank: result.totalAfterRerank || 0,
+          source: result.source || 'rag',
+          faqQuestion: result.faqQuestion,
+          faqId: result.faqId,
+          relevanceScore: result.relevanceScore,
         });
         setSearchPerformed(true);
 
-        if (!result.supportingChunks || result.supportingChunks.length === 0) {
+        if (result.source === 'faq') {
+          toast.success('Answer from FAQ (instant match!)');
+        } else if (!result.supportingChunks || result.supportingChunks.length === 0) {
           toast('No relevant information found', { icon: '🔍' });
         } else {
-          toast.success('Answer generated');
+          toast.success('Answer generated from knowledge base');
         }
       } else {
         toast.error(result.error || 'Search failed');
@@ -91,9 +101,9 @@ export default function SearchTestPage() {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">RAG Search Test</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Hybrid FAQ + RAG Search Test</h1>
             <p className="text-gray-600">
-              Test AI-powered answer generation from knowledge base content
+              Test FAQ matching and AI-powered answer generation
             </p>
           </div>
           <Link
@@ -109,11 +119,11 @@ export default function SearchTestPage() {
           <div className="flex items-start space-x-3">
             <AlertCircle className="text-blue-600 mt-0.5" size={20} />
             <div className="flex-1">
-              <h3 className="font-semibold text-blue-900 mb-1">About RAG Search</h3>
+              <h3 className="font-semibold text-blue-900 mb-1">About Hybrid Search</h3>
               <p className="text-sm text-blue-800">
-                Queries are processed through a full RAG pipeline: vector search →
+                <strong>Step 1:</strong> Checks FAQs first for instant keyword matches (⚡ fast). <br />
+                <strong>Step 2:</strong> If no FAQ match, uses full RAG pipeline: vector search →
                 reranking → context building → LLM answer generation.
-                The AI synthesizes information from multiple chunks and pages.
               </p>
             </div>
           </div>
@@ -158,18 +168,48 @@ export default function SearchTestPage() {
         {/* Results */}
         {searchPerformed && ragResponse && (
           <div className="space-y-6">
+            {/* FAQ Badge (if answer is from FAQ) */}
+            {ragResponse.source === 'faq' && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <MessageSquare className="text-green-600 mt-0.5 flex-shrink-0" size={20} />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-green-900">⚡ Instant Answer from FAQ</h3>
+                      <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                        Relevance: {ragResponse.relevanceScore}
+                      </span>
+                    </div>
+                    <p className="text-sm text-green-800 mb-1">
+                      <strong>Matched Question:</strong> {ragResponse.faqQuestion}
+                    </p>
+                    <p className="text-xs text-green-600">
+                      This answer was retrieved instantly from your FAQ database without using AI generation.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* AI Answer */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+              <div className={`px-6 py-4 border-b border-gray-200 ${
+                ragResponse.source === 'faq' 
+                  ? 'bg-gradient-to-r from-green-50 to-emerald-50' 
+                  : 'bg-gradient-to-r from-blue-50 to-indigo-50'
+              }`}>
                 <div className="flex items-center space-x-3">
-                  <MessageSquare className="text-blue-600" size={22} />
+                  <MessageSquare className={ragResponse.source === 'faq' ? 'text-green-600' : 'text-blue-600'} size={22} />
                   <h2 className="text-xl font-bold text-gray-900">
-                    AI Generated Answer
+                    {ragResponse.source === 'faq' ? 'FAQ Answer' : 'AI Generated Answer'}
                   </h2>
                 </div>
                 <div className="mt-1 text-sm text-gray-500">
-                  Retrieved from {ragResponse.totalAfterRerank} chunks
-                  (searched {ragResponse.totalRetrieved} total)
+                  {ragResponse.source === 'faq' ? (
+                    `FAQ ID: ${ragResponse.faqId?.substring(0, 8)}`
+                  ) : (
+                    `Retrieved from ${ragResponse.totalAfterRerank} chunks (searched ${ragResponse.totalRetrieved} total)`
+                  )}
                 </div>
               </div>
               <div className="p-6">
@@ -182,7 +222,7 @@ export default function SearchTestPage() {
             </div>
 
             {/* Supporting Chunks Toggle */}
-            {ragResponse.supportingChunks.length > 0 && (
+            {ragResponse.source === 'rag' && ragResponse.supportingChunks.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <button
                   onClick={() => setShowChunks(!showChunks)}
