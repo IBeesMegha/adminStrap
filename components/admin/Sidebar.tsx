@@ -314,6 +314,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {aiAgentsOpen && (
             <div className="ml-8 mt-2 space-y-1">
               <Link
+                href="/admin/ai-chatbot"
+                className={`block px-3 py-2 text-sm rounded-lg transition hover:bg-white/10 ${
+                  router.pathname === '/admin/ai-chatbot'
+                    ? 'bg-white/10 text-white'
+                    : ''
+                }`}
+                style={{ color: router.pathname === '/admin/ai-chatbot' ? '#fff' : textMuted.color }}
+              >
+                AI Chatbot
+              </Link>
+              <Link
                 href="/admin/knowledge-base"
                 className={`block px-3 py-2 text-sm rounded-lg transition hover:bg-white/10 ${
                   router.pathname === '/admin/knowledge-base'
@@ -322,7 +333,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }`}
                 style={{ color: router.pathname === '/admin/knowledge-base' ? '#fff' : textMuted.color }}
               >
-                Knowledge Base
+                Knowledge Base (Legacy)
               </Link>
             </div>
           )}
