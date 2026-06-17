@@ -376,17 +376,7 @@ export default function AIChatbotPage() {
         { key: 'search-testing', label: 'Search Testing', icon: <Search size={18} /> },
       ],
     },
-    {
-      title: 'Workflow Builder',
-      items: [
-        { key: 'welcome-message', label: 'Welcome Message', icon: <MessageSquare size={18} /> },
-        { key: 'quick-questions', label: 'Quick Questions', icon: <Zap size={18} /> },
-        { key: 'flow-designer', label: 'Flow Designer', icon: <GitBranch size={18} /> },
-        { key: 'conditions', label: 'Conditions', icon: <Code2 size={18} /> },
-        { key: 'variables', label: 'Variables', icon: <Variable size={18} /> },
-        { key: 'api-actions', label: 'API Actions', icon: <Webhook size={18} /> },
-      ],
-    },
+
     {
       title: 'Theme Settings',
       items: [

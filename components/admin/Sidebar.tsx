@@ -325,6 +325,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 AI Chatbot
               </Link>
               <Link
+                href="/admin/workflow-builder"
+                className={`block px-3 py-2 text-sm rounded-lg transition hover:bg-white/10 ${
+                  router.pathname === '/admin/workflow-builder'
+                    ? 'bg-white/10 text-white'
+                    : ''
+                }`}
+                style={{ color: router.pathname === '/admin/workflow-builder' ? '#fff' : textMuted.color }}
+              >
+                Workflow Builder
+              </Link>
+              <Link
                 href="/admin/knowledge-base"
                 className={`block px-3 py-2 text-sm rounded-lg transition hover:bg-white/10 ${
                   router.pathname === '/admin/knowledge-base'

@@ -294,3 +294,13 @@ model ThemeSettings {
 
   @@map("theme_settings")
 }
+
+model WorkflowSettings {
+  id        String   @id @default(cuid())
+  type      String   @unique
+  settings  String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("workflow_settings")
+}

@@ -1,4 +1,0 @@
-i have content type builder and content manager 
-both have three tabs
-collection types, single types and components
-
