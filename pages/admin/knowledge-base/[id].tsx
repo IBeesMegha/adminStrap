@@ -26,7 +26,6 @@ interface KnowledgePage {
   id: string;
   url: string;
   pageTitle: string | null;
-  textContent: string;
   contentLength: number;
   crawlStatus: string;
   lastCrawledAt: Date | null;
@@ -227,8 +226,7 @@ export default function KnowledgeSourceDetailsPage() {
     const query = searchQuery.toLowerCase();
     return (
       page.url.toLowerCase().includes(query) ||
-      page.pageTitle?.toLowerCase().includes(query) ||
-      page.textContent.toLowerCase().includes(query)
+      page.pageTitle?.toLowerCase().includes(query)
     );
   });
 

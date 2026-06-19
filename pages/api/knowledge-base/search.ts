@@ -65,14 +65,21 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       rerankTopK: rerankTopK || 10,
     });
 
-    return res.status(200).json({
+    const responseData: any = {
       success: true,
       source: 'rag',
       answer: result.answer,
       supportingChunks: result.supportingChunks,
       totalRetrieved: result.totalRetrieved,
       totalAfterRerank: result.totalAfterRerank,
-    });
+    };
+
+    // Include images if available
+    if (result.images && result.images.length > 0) {
+      responseData.images = result.images;
+    }
+
+    return res.status(200).json(responseData);
   } catch (error: any) {
     console.error('[SEARCH] Error:', error);
     return res.status(500).json({

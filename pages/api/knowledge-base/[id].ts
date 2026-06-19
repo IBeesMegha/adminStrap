@@ -37,6 +37,16 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
           orderBy: {
             createdAt: 'desc',
           },
+          select: {
+            id: true,
+            url: true,
+            pageTitle: true,
+            contentLength: true,
+            crawlStatus: true,
+            lastCrawledAt: true,
+            createdAt: true,
+            updatedAt: true,
+          },
         },
       },
     });

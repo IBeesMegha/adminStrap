@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Layout } from '@/components/admin/Layout';
 import Link from 'next/link';
-import { Search, Loader, ExternalLink, AlertCircle, MessageSquare, FileText } from 'lucide-react';
+import { Search, Loader, ExternalLink, AlertCircle, MessageSquare, FileText, ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import ImageGallery, { ImageData } from '@/components/ai/ImageGallery';
 
 interface SupportingChunk {
   id: string;
@@ -27,6 +28,7 @@ interface RAGResponse {
   faqQuestion?: string;
   faqId?: string;
   relevanceScore?: number;
+  images?: ImageData[];
 }
 
 export default function SearchTestPage() {
@@ -67,6 +69,7 @@ export default function SearchTestPage() {
           faqQuestion: result.faqQuestion,
           faqId: result.faqId,
           relevanceScore: result.relevanceScore,
+          images: result.images,
         });
         setSearchPerformed(true);
 
@@ -220,6 +223,27 @@ export default function SearchTestPage() {
                 </div>
               </div>
             </div>
+
+            {/* Related Images */}
+            {ragResponse.images && ragResponse.images.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <ImageIcon className="text-blue-600" size={22} />
+                    <h2 className="text-xl font-bold text-gray-900">
+                      Related Images ({ragResponse.images.length})
+                    </h2>
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    Retrieved from knowledge base
+                  </span>
+                </div>
+                <ImageGallery
+                  images={ragResponse.images}
+                  maxImages={6}
+                />
+              </div>
+            )}
 
             {/* Supporting Chunks Toggle */}
             {ragResponse.source === 'rag' && ragResponse.supportingChunks.length > 0 && (

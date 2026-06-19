@@ -859,32 +859,68 @@ export function cosineSimilarity(vecA: number[], vecB: number[]): number {
   return dotProduct / (normA * normB);
 }
 
+export interface ProcessPageResult {
+  skipped: boolean;
+  skipReason?: string;
+  chunks?: Array<ChunkResult & { embedding: number[] }>;
+}
+
 /**
  * Process a page: clean, chunk, and generate embeddings
+ *
+ * Returns a result indicating whether the page was processed or skipped.
+ * Pages with insufficient text are skipped (not failed) so their media
+ * and metadata are preserved for future multimodal retrieval.
  */
 export async function processPage(
   pageText: string,
-  options: ProcessingOptions = {}
-): Promise<Array<ChunkResult & { embedding: number[] }>> {
+  options: ProcessingOptions = {},
+  mediaCount: number = 0
+): Promise<ProcessPageResult> {
   // Step 1: Clean text
   const cleanedText = cleanTextContent(pageText);
+  const wordCount = cleanedText ? cleanedText.split(/\s+/).filter(w => w.length > 0).length : 0;
 
-  if (!cleanedText || cleanedText.length < 100) {
-    throw new Error('Text content too short after cleaning');
+  const rawLength = pageText.length;
+  const cleanedLength = cleanedText ? cleanedText.length : 0;
+
+  // Check if text is too short for meaningful embeddings
+  if (!cleanedText || cleanedLength < 100) {
+    console.log(`[PROCESS PAGE] Page URL: [logging only - URL not passed to this function]`);
+    console.log(`[PROCESS PAGE] Raw text length: ${rawLength}`);
+    console.log(`[PROCESS PAGE] Cleaned text length: ${cleanedLength}`);
+    console.log(`[PROCESS PAGE] Word count: ${wordCount}`);
+    console.log(`[PROCESS PAGE] Media count: ${mediaCount}`);
+    console.log(`[PROCESS PAGE] Decision: Skipped (Insufficient text)`);
+    console.log(`[PROCESS PAGE] Skipped embedding generation: insufficient textual content.`);
+    return { skipped: true, skipReason: 'Insufficient text content after cleaning' };
   }
+
+  console.log(`[PROCESS PAGE] Raw text length: ${rawLength}`);
+  console.log(`[PROCESS PAGE] Cleaned text length: ${cleanedLength}`);
+  console.log(`[PROCESS PAGE] Word count: ${wordCount}`);
+  console.log(`[PROCESS PAGE] Media count: ${mediaCount}`);
+  console.log(`[PROCESS PAGE] Cleaned text first 500 chars: ${cleanedText.substring(0, 500).replace(/\n/g, '\\n')}`);
 
   // Step 2: Semantic chunking (heading-aware, with word-count fallback)
   const chunks = semanticChunkText(cleanedText, options);
 
   if (chunks.length === 0) {
-    throw new Error('No chunks generated from text');
+    console.log(`[PROCESS PAGE] Decision: Skipped (No chunks generated)`);
+    return { skipped: true, skipReason: 'No chunks could be generated from text' };
   }
+
+  console.log(`[PROCESS PAGE] Generated ${chunks.length} chunks`);
 
   // Step 3: Generate embeddings for each chunk
   const processedChunks: Array<ChunkResult & { embedding: number[] }> = [];
 
   for (const chunk of chunks) {
     try {
+      if (chunk.chunkIndex === 0) {
+        console.log(`[PROCESS PAGE] First chunk text (${chunk.chunkText.length} chars): ${chunk.chunkText.substring(0, 300).replace(/\n/g, '\\n')}`);
+      }
+
       const embedding = await generateEmbedding(chunk.chunkText);
       processedChunks.push({
         ...chunk,
@@ -895,13 +931,16 @@ export async function processPage(
       await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error) {
       console.error(`Failed to generate embedding for chunk ${chunk.chunkIndex}:`, error);
-      // Continue with other chunks even if one fails
     }
   }
 
   if (processedChunks.length === 0) {
-    throw new Error('Failed to generate embeddings for any chunks');
+    console.log(`[PROCESS PAGE] Decision: Skipped (No embeddings generated)`);
+    return { skipped: true, skipReason: 'Failed to generate embeddings for any chunks' };
   }
 
-  return processedChunks;
+  console.log(`[PROCESS PAGE] Decision: Embedded`);
+  console.log(`[PROCESS PAGE] Successfully processed ${processedChunks.length} chunks with embeddings`);
+
+  return { skipped: false, chunks: processedChunks };
 }

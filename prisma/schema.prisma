@@ -196,6 +196,7 @@ model KnowledgePage {
   lastProcessedAt  DateTime?
   processingStatus String           @default("pending")
   chunks           KnowledgeChunk[]
+  media            KnowledgeMedia[]
   source           KnowledgeSource  @relation(fields: [sourceId], references: [id], onDelete: Cascade)
 
   @@unique([sourceId, url])
@@ -206,23 +207,49 @@ model KnowledgePage {
 }
 
 model KnowledgeChunk {
-  id             String          @id @default(cuid())
+  id             String           @id @default(cuid())
   sourceId       String
   pageId         String
   chunkText      String
   chunkIndex     Int
-  tokenCount     Int             @default(0)
+  tokenCount     Int              @default(0)
   embedding      Float[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
   sectionHeading String?
-  page           KnowledgePage   @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  source         KnowledgeSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  page           KnowledgePage    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  source         KnowledgeSource  @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  media          KnowledgeMedia[]
 
   @@index([sourceId])
   @@index([pageId])
   @@index([chunkIndex])
   @@map("knowledge_chunks")
+}
+
+model KnowledgeMedia {
+  id           String          @id @default(cuid())
+  pageId       String
+  chunkId      String?
+  type         String          @default("image")
+  mediaUrl     String
+  altText      String?
+  caption      String?
+  title        String?
+  mimeType     String?
+  width        Int?
+  height       Int?
+  metadata     Json?
+  embedding    Float[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  page         KnowledgePage   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  chunk        KnowledgeChunk? @relation(fields: [chunkId], references: [id], onDelete: SetNull)
+
+  @@index([pageId])
+  @@index([chunkId])
+  @@index([type])
+  @@map("knowledge_media")
 }
 
 model KnowledgeSettings {

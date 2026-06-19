@@ -2,6 +2,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { authMiddleware } from '@/lib/middlewares/api/auth-middleware';
 import { prisma } from '@/lib/prisma';
 import { crawlWebsite } from '@/lib/web-crawler';
+import { storeMediaFromPage } from '@/lib/media-service';
+import { processSourcePages } from '@/pages/api/knowledge-base/process';
 
 /**
  * GET /api/knowledge-base - List all knowledge sources
@@ -135,18 +137,31 @@ async function performCrawl(sourceId: string, websiteUrl: string) {
       const batchSize = 10;
       for (let i = 0; i < result.pages.length; i += batchSize) {
         const batch = result.pages.slice(i, i + batchSize);
-        await prisma.knowledgePage.createMany({
-          data: batch.map(page => ({
-            sourceId,
-            url: page.url,
-            pageTitle: page.pageTitle,
-            textContent: page.textContent,
-            htmlContent: page.htmlContent,
-            contentLength: page.contentLength,
-            crawlStatus: 'crawled',
-            lastCrawledAt: new Date(),
-          })),
-        });
+        
+        // Create pages and store media in parallel batches
+        for (const page of batch) {
+          // Create page
+          const createdPage = await prisma.knowledgePage.create({
+            data: {
+              sourceId,
+              url: page.url,
+              pageTitle: page.pageTitle,
+              textContent: page.textContent,
+              htmlContent: page.htmlContent,
+              contentLength: page.contentLength,
+              crawlStatus: 'crawled',
+              lastCrawledAt: new Date(),
+            },
+          });
+
+          // Store media for this page (if extracted)
+          if (page.media && page.media.length > 0) {
+            console.log(
+              `[CRAWL] Storing ${page.media.length} media items for page ${page.url}`
+            );
+            await storeMediaFromPage(createdPage.id, page.media);
+          }
+        }
       }
     }
 
@@ -191,19 +206,7 @@ async function triggerProcessing(sourceId: string) {
   try {
     console.log(`[PROCESSING] Triggering background processing for source: ${sourceId}`);
     
-    // Call the process API internally
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/knowledge-base/process?sourceId=${sourceId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Processing API returned ${response.status}`);
-    }
-
-    const result = await response.json();
+    const result = await processSourcePages(sourceId);
     console.log(`[PROCESSING] Background processing result:`, result);
   } catch (error) {
     console.error('[PROCESSING] Error:', error);
