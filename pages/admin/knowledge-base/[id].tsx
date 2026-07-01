@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Layout } from '@/components/admin/Layout';
 import { useRouter } from 'next/router';
 import ReactMarkdown from 'react-markdown';
@@ -17,6 +17,10 @@ import {
   Edit2,
   Save,
   X,
+  Bot,
+  User,
+  FileText,
+  ExternalLink,
 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -65,6 +69,11 @@ export default function KnowledgeSourceDetailsPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
 
   useEffect(() => {
     if (id) {
@@ -502,95 +511,133 @@ export default function KnowledgeSourceDetailsPage() {
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col h-[600px]">
+              <div className="flex flex-col h-[600px] bg-[#F8FAFC]">
                 {/* Chat Messages */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <div className="flex-1 overflow-y-auto p-6 space-y-5">
                   {chatMessages.length === 0 ? (
-                    <div className="text-center text-gray-500 py-12">
-                      <MessageSquare className="mx-auto mb-4" size={48} />
-                      <p>Start a conversation by asking a question below</p>
-                      <p className="text-sm mt-2">
-                        Example: "What services do you offer?" or "Tell me about your products"
-                      </p>
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                      <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 mb-4">
+                        <MessageSquare size={24} className="text-white" />
+                      </div>
+                      <p className="text-gray-700 font-medium mb-1">Ask a question about this source</p>
+                      <p className="text-sm text-gray-400">Example: "What services do you offer?"</p>
                     </div>
                   ) : (
-                    chatMessages.map((message, index) => (
-                      <div
-                        key={index}
-                        className={`flex ${
-                          message.role === 'user' ? 'justify-end' : 'justify-start'
-                        }`}
-                      >
+                    <>
+                      {chatMessages.map((message, index) => (
                         <div
-                          className={`max-w-3xl rounded-lg p-4 ${
-                            message.role === 'user'
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-gray-100 text-gray-900'
+                          key={index}
+                          className={`flex items-start gap-3 ${
+                            message.role === 'user' ? 'flex-row-reverse' : ''
                           }`}
                         >
-                          <div className="whitespace-pre-wrap">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {message.content}
-                            </ReactMarkdown>
+                          <div
+                            className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                              message.role === 'user'
+                                ? 'bg-blue-600'
+                                : 'bg-gradient-to-br from-blue-500 to-blue-600'
+                            }`}
+                          >
+                            {message.role === 'user' ? (
+                              <User size={15} className="text-white" />
+                            ) : (
+                              <Bot size={15} className="text-white" />
+                            )}
                           </div>
-                          {message.sources && message.sources.length > 0 && (
-                            <div className="mt-4 pt-4 border-t border-gray-300">
-                              <p className="text-xs font-semibold mb-2">Sources:</p>
-                              <div className="space-y-2">
-                                {message.sources.map((source, idx) => (
-                                  <div key={idx} className="text-xs">
+                          <div
+                            className={`max-w-[85%] rounded-2xl px-5 py-3.5 ${
+                              message.role === 'user'
+                                ? 'bg-blue-600 text-white rounded-tr-md'
+                                : 'bg-white text-gray-800 rounded-tl-md shadow-sm border border-gray-100'
+                            }`}
+                          >
+                            <div className="markdown-body text-[15px] leading-relaxed">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {message.content}
+                              </ReactMarkdown>
+                            </div>
+                            {message.sources && message.sources.length > 0 && (
+                              <div className="mt-4 pt-4 border-t border-gray-200">
+                                <p className="text-xs font-semibold text-gray-500 mb-2">Sources:</p>
+                                <div className="space-y-2">
+                                  {message.sources.map((source, idx) => (
                                     <a
+                                      key={idx}
                                       href={source.url}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="text-blue-600 hover:underline font-medium"
+                                      className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 border border-gray-100 hover:bg-blue-50 hover:border-blue-100 transition-all group"
                                     >
-                                      {source.title}
+                                      <FileText size={12} className="text-gray-400 flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <span className="text-xs font-medium text-gray-700 group-hover:text-blue-700">{source.title}</span>
+                                        <p className="text-[10px] text-gray-400 truncate">{source.snippet}</p>
+                                      </div>
+                                      <ExternalLink size={10} className="text-gray-300 group-hover:text-blue-400 flex-shrink-0" />
                                     </a>
-                                    <p className="text-gray-600 mt-1">{source.snippet}</p>
-                                  </div>
-                                ))}
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      ))}
+                      <div ref={messagesEndRef} />
+                    </>
                   )}
                   {chatLoading && (
-                    <div className="flex justify-start">
-                      <div className="bg-gray-100 rounded-lg p-4">
-                        <Loader className="animate-spin text-gray-600" size={20} />
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                        <Bot size={15} className="text-white" />
+                      </div>
+                      <div className="bg-white rounded-2xl rounded-tl-md px-5 py-3.5 shadow-sm border border-gray-100">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
 
                 {/* Chat Input */}
-                <div className="border-t border-gray-200 p-4">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="text"
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleChat();
-                        }
-                      }}
-                      placeholder="Ask a question about the website content..."
-                      className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      disabled={chatLoading}
-                    />
-                    <button
-                      onClick={handleChat}
-                      disabled={chatLoading || !chatInput.trim()}
-                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Send size={20} />
-                    </button>
-                  </div>
+                <div className="border-t border-gray-200 bg-white p-4">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleChat();
+                    }}
+                    className="relative"
+                  >
+                    <div className="flex items-end gap-2 bg-white border border-gray-200 rounded-2xl pl-4 pr-2 py-2 shadow-sm focus-within:border-blue-300 focus-within:shadow-md focus-within:shadow-blue-100 transition-all">
+                      <input
+                        type="text"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleChat();
+                          }
+                        }}
+                        placeholder="Ask a question about the website content..."
+                        className="flex-1 outline-none text-[15px] text-gray-800 placeholder-gray-400 bg-transparent"
+                        disabled={chatLoading}
+                      />
+                      <button
+                        type="submit"
+                        disabled={chatLoading || !chatInput.trim()}
+                        className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                          chatInput.trim() && !chatLoading
+                            ? 'bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95'
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        <Send size={16} />
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </div>
             )}
