@@ -600,14 +600,24 @@ function isLikelyHeading(line: string): boolean {
 }
 
 /**
- * Generate embedding for text using Hugging Face Inference API
- * Falls back to local embedding if API is unavailable
+ * Generate embedding for text using Hugging Face Inference API.
+ * Uses BGE-small-en-v1.5 (384-dim) for efficient semantic search.
  */
 export async function generateEmbedding(
   text: string,
-  model: string = 'BAAI/bge-base-en-v1.5'
+  model: string = 'BAAI/bge-small-en-v1.5'
 ): Promise<number[]> {
-  return generateLocalEmbedding(text);
+  const apiKey = process.env.HUGGINGFACE_API_KEY;
+  if (!apiKey) {
+    console.warn('[EMBEDDING] No HUGGINGFACE_API_KEY set, falling back to local embedding');
+    return generateLocalEmbedding(text);
+  }
+  try {
+    return await generateEmbeddingWithHttps(text, model, apiKey);
+  } catch (error: any) {
+    console.warn(`[EMBEDDING] API call failed: ${error.message}, falling back to local`);
+    return generateLocalEmbedding(text);
+  }
 }
 
 /**
@@ -628,14 +638,14 @@ async function generateEmbeddingWithHttps(
 
     const options = {
       hostname: 'router.huggingface.co',
-      path: `/hf-inference/pipeline/feature-extraction/${model}`,
+      path: `/hf-inference/models/${model}`,
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(postData),
       },
-      timeout: 8000,
+      timeout: 30000,
     };
 
     const req = https.request(options, (res) => {

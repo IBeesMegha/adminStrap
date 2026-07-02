@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { generateAnswer } from '@/lib/llm-service';
 import { getMediaForChunks, deduplicateMedia, rankMediaByRelevance, searchMediaByText, MediaWithMetadata } from '@/lib/media-service';
+import { generateEmbedding } from '@/lib/knowledge-processing';
 
 export interface ChunkRecord {
   id: string;
@@ -38,6 +39,8 @@ export interface RAGResponse {
 }
 
 const NOT_FOUND_MESSAGE = 'The requested information was not found in the knowledge base.';
+
+const BGE_QUERY_PREFIX = 'Represent this sentence for searching relevant passages: ';
 
 const SYSTEM_PROMPT = `You are a knowledge base assistant.
 
@@ -93,20 +96,35 @@ export async function ragSearch(
     };
   }
 
-  const queryTerms = tokenizeQuery(query);
-  const totalDocs = allChunks.length;
+  // Generate query embedding for hybrid search
+  let queryEmbedding: number[] | null = null;
+  try {
+    queryEmbedding = await generateEmbedding(BGE_QUERY_PREFIX + query);
+  } catch {
+    console.warn('[RAG] Query embedding failed, falling back to BM25-only');
+  }
 
+  const queryTerms = tokenizeQuery(query);
+  const allTexts = allChunks.map(c =>
+    [c.chunkText, c.page.pageTitle, c.sectionHeading].filter(Boolean).join(' ')
+  );
+
+  // First pass: compute raw BM25 and vector scores
+  const scores = new Map<string, { bm25: number; vector: number }>();
   const scored: ChunkRecord[] = [];
   for (const chunk of allChunks) {
-    // Augment chunk text with page title and section heading for better scoring
     const augmentedText = [chunk.chunkText, chunk.page.pageTitle, chunk.sectionHeading]
       .filter(Boolean)
       .join(' ');
     const chunkTerms = tokenize(augmentedText);
-    const allTexts = allChunks.map(c =>
-      [c.chunkText, c.page.pageTitle, c.sectionHeading].filter(Boolean).join(' ')
-    );
-    const score = bm25Score(queryTerms, chunkTerms, augmentedText, allTexts);
+    const bm25 = bm25Score(queryTerms, chunkTerms, augmentedText, allTexts);
+
+    let vectorSim = 0;
+    if (queryEmbedding && chunk.embedding && chunk.embedding.length === queryEmbedding.length) {
+      vectorSim = cosineSimilarity(queryEmbedding, chunk.embedding);
+    }
+
+    scores.set(chunk.id, { bm25, vector: vectorSim });
     scored.push({
       id: chunk.id,
       chunkText: chunk.chunkText,
@@ -117,8 +135,28 @@ export async function ragSearch(
       sourceName: chunk.source.name,
       sourceId: chunk.sourceId,
       pageId: chunk.pageId,
-      similarity: score,
+      similarity: 0,
     });
+  }
+
+  // Second pass: RRF merge (if vector available) or BM25-only
+  const hasVector = queryEmbedding !== null && [...scores.values()].some(s => s.vector > 0);
+  if (hasVector) {
+    const k = 5;
+    const bm25Rank = [...scored]
+      .sort((a, b) => (scores.get(b.id)?.bm25 ?? 0) - (scores.get(a.id)?.bm25 ?? 0))
+      .reduce((m, c, i) => m.set(c.id, i + 1), new Map<string, number>());
+    const vectorRank = [...scored]
+      .sort((a, b) => (scores.get(b.id)?.vector ?? 0) - (scores.get(a.id)?.vector ?? 0))
+      .reduce((m, c, i) => m.set(c.id, i + 1), new Map<string, number>());
+    for (const c of scored) {
+      c.similarity = (1 / (k + (bm25Rank.get(c.id) ?? scored.length)))
+                   + (1 / (k + (vectorRank.get(c.id) ?? scored.length)));
+    }
+  } else {
+    for (const c of scored) {
+      c.similarity = scores.get(c.id)?.bm25 ?? 0;
+    }
   }
 
   scored.sort((a, b) => b.similarity - a.similarity);
@@ -271,6 +309,17 @@ function bm25Score(
   }
 
   return score;
+}
+
+function cosineSimilarity(a: number[], b: number[]): number {
+  let dot = 0, normA = 0, normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB);
+  return denom === 0 ? 0 : dot / denom;
 }
 
 function buildContext(chunks: ChunkRecord[]): string {
