@@ -17,7 +17,8 @@ model User {
   updatedAt DateTime  @updatedAt
   roleId    String?
   sessions  Session[]
-  role      Role?     @relation(fields: [roleId], references: [id])
+  role         Role?          @relation(fields: [roleId], references: [id])
+  chatSessions ChatSession[]
 
   @@index([roleId])
   @@map("users")
@@ -283,6 +284,42 @@ model FAQ {
   @@index([category])
   @@index([priority])
   @@map("faqs")
+}
+
+model ChatSession {
+  id        String        @id @default(cuid())
+  userId    String
+  title     String        @default("New Chat")
+  status    String        @default("active")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id               String       @id @default(cuid())
+  sessionId        String
+  role             String
+  content          String       @db.Text
+  source           String?
+  faqQuestion      String?
+  faqId            String?
+  relevanceScore   Float?
+  supportingChunks Json?        @default("[]")
+  totalRetrieved   Int?
+  totalAfterRerank Int?
+  images           Json?        @default("[]")
+  createdAt        DateTime     @default(now())
+  session          ChatSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("chat_messages")
 }
 
 model ThemeSettings {

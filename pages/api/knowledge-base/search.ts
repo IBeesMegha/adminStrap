@@ -92,7 +92,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 /**
  * Search FAQs for relevant matches
  */
-async function searchFAQs(query: string) {
+export async function searchFAQs(query: string) {
   const queryLower = query.toLowerCase();
   const queryWords = queryLower.split(' ').filter((w: string) => w.length > 2);
 

@@ -346,6 +346,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 Knowledge Base (Legacy)
               </Link>
+              <Link
+                href="/admin/chat-history"
+                className={`block px-3 py-2 text-sm rounded-lg transition hover:bg-white/10 ${
+                  router.pathname === '/admin/chat-history'
+                    ? 'bg-white/10 text-white'
+                    : ''
+                }`}
+                style={{ color: router.pathname === '/admin/chat-history' ? '#fff' : textMuted.color }}
+              >
+                Chat History
+              </Link>
             </div>
           )}
         </div>

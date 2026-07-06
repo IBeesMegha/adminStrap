@@ -377,26 +377,26 @@ export default function AIChatbotPage() {
       ],
     },
 
-    {
-      title: 'Theme Settings',
-      items: [
-        { key: 'theme-colors', label: 'Colors', icon: <Palette size={18} /> },
-        { key: 'theme-logo', label: 'Logo', icon: <ImageIcon size={18} /> },
-        { key: 'theme-icon', label: 'Chat Icon', icon: <MessageCircle size={18} /> },
-        { key: 'theme-text', label: 'Welcome Text', icon: <Type size={18} /> },
-        { key: 'theme-position', label: 'Widget Position', icon: <LayoutIcon size={18} /> },
-        { key: 'theme-css', label: 'Custom CSS', icon: <Code2 size={18} /> },
-      ],
-    },
-    {
-      title: 'Analytics',
-      items: [
-        { key: 'analytics-conversations', label: 'Conversations', icon: <MessagesSquare size={18} /> },
-        { key: 'analytics-questions', label: 'Popular Questions', icon: <HelpCircle size={18} /> },
-        { key: 'analytics-failed', label: 'Failed Searches', icon: <XCircle size={18} /> },
-        { key: 'analytics-feedback', label: 'User Feedback', icon: <ThumbsUp size={18} /> },
-      ],
-    },
+    // {
+    //   title: 'Theme Settings',
+    //   items: [
+    //     { key: 'theme-colors', label: 'Colors', icon: <Palette size={18} /> },
+    //     { key: 'theme-logo', label: 'Logo', icon: <ImageIcon size={18} /> },
+    //     { key: 'theme-icon', label: 'Chat Icon', icon: <MessageCircle size={18} /> },
+    //     { key: 'theme-text', label: 'Welcome Text', icon: <Type size={18} /> },
+    //     { key: 'theme-position', label: 'Widget Position', icon: <LayoutIcon size={18} /> },
+    //     { key: 'theme-css', label: 'Custom CSS', icon: <Code2 size={18} /> },
+    //   ],
+    // // },
+    // {
+    //   title: 'Analytics',
+    //   items: [
+    //     { key: 'analytics-conversations', label: 'Conversations', icon: <MessagesSquare size={18} /> },
+    //     { key: 'analytics-questions', label: 'Popular Questions', icon: <HelpCircle size={18} /> },
+    //     { key: 'analytics-failed', label: 'Failed Searches', icon: <XCircle size={18} /> },
+    //     { key: 'analytics-feedback', label: 'User Feedback', icon: <ThumbsUp size={18} /> },
+    //   ],
+    // },
   ];
 
   if (authLoading) {

@@ -16,6 +16,8 @@ import {
   Check,
   Sparkles,
   ChevronDown,
+  Plus,
+  MessageSquare,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
@@ -69,6 +71,9 @@ export default function SearchTestPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [likedId, setLikedId] = useState<string | null>(null);
   const [dislikedId, setDislikedId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const [sessionTitle, setSessionTitle] = useState('New Chat');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -97,6 +102,67 @@ export default function SearchTestPage() {
       if (streamIntervalRef.current) clearInterval(streamIntervalRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    loadOrCreateSession();
+  }, []);
+
+  const loadOrCreateSession = async () => {
+    try {
+      const res = await fetch('/api/chat-sessions/current', { credentials: 'include' });
+      const data = await res.json();
+      if (data.success) {
+        setSessionId(data.data.id);
+        setSessionTitle(data.data.title);
+        const msgRes = await fetch(`/api/chat-sessions/${data.data.id}/messages`, { credentials: 'include' });
+        const msgData = await msgRes.json();
+        if (msgData.success && msgData.data) {
+          const loadedMessages: ChatMessage[] = msgData.data.map((m: any) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            timestamp: new Date(m.createdAt),
+            source: m.source,
+            faqQuestion: m.faqQuestion,
+            faqId: m.faqId,
+            relevanceScore: m.relevanceScore,
+            supportingChunks: m.supportingChunks || [],
+            totalRetrieved: m.totalRetrieved,
+            totalAfterRerank: m.totalAfterRerank,
+            images: m.images || [],
+          }));
+          setMessages(loadedMessages);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load session:', err);
+      toast.error('Failed to load chat session');
+    } finally {
+      setSessionLoading(false);
+    }
+  };
+
+  const handleNewChat = async () => {
+    try {
+      const res = await fetch('/api/chat-sessions/new', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSessionId(data.data.id);
+        setSessionTitle(data.data.title);
+        setMessages([]);
+        setInput('');
+        setExpandedSources(new Set());
+        setCopiedId(null);
+        setLikedId(null);
+        setDislikedId(null);
+      }
+    } catch (err) {
+      toast.error('Failed to create new chat');
+    }
+  };
 
   const autoResizeTextarea = () => {
     const el = textareaRef.current;
@@ -130,7 +196,7 @@ export default function SearchTestPage() {
 
   const handleSend = async (text?: string) => {
     const queryText = (text || input).trim();
-    if (!queryText) return;
+    if (!queryText || !sessionId) return;
 
     setInput('');
 
@@ -145,7 +211,7 @@ export default function SearchTestPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/knowledge-base/search', {
+      const response = await fetch(`/api/chat-sessions/${sessionId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: queryText }),
@@ -154,7 +220,7 @@ export default function SearchTestPage() {
       const result = await response.json();
 
       if (result.success) {
-        const assistantId = `assistant-${Date.now()}`;
+        const assistantId = `assistant-${result.id || Date.now()}`;
         const assistantMessage: ChatMessage = {
           id: assistantId,
           role: 'assistant',
@@ -373,10 +439,37 @@ export default function SearchTestPage() {
   return (
     <Layout>
       <div className="flex flex-col h-[calc(100vh-4rem)] bg-[#F8FAFC]">
+        {/* Chat Header */}
+        <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <MessageSquare size={20} className="text-blue-600" />
+            <h2 className="text-sm font-semibold text-gray-700 truncate max-w-md">
+              {sessionLoading ? 'Loading...' : sessionTitle}
+            </h2>
+          </div>
+          <button
+            onClick={handleNewChat}
+            disabled={sessionLoading || loading}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-blue-50 hover:text-blue-700 border border-gray-200 hover:border-blue-200 rounded-lg transition-all disabled:opacity-50"
+          >
+            <Plus size={16} />
+            New Chat
+          </button>
+        </div>
+
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-4 py-6">
-            {messages.length === 0 && !loading && (
+            {sessionLoading && (
+              <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
+                <div className="flex flex-col items-center gap-3">
+                  <Loader size={24} className="text-blue-600 animate-spin" />
+                  <span className="text-sm text-gray-500">Loading conversation...</span>
+                </div>
+              </div>
+            )}
+
+            {messages.length === 0 && !loading && !sessionLoading && (
               <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)]">
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 mb-6 animate-[fadeIn_0.5s_ease-out]">
                   <Bot size={32} className="text-white" />

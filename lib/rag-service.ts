@@ -30,6 +30,11 @@ export interface RetrievedImage {
   relevanceScore?: number;
 }
 
+export interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface RAGResponse {
   answer: string;
   supportingChunks: ChunkRecord[];
@@ -65,6 +70,7 @@ export async function ragSearch(
     llmModel?: string;
     vectorTopK?: number;
     rerankTopK?: number;
+    conversationHistory?: ConversationMessage[];
   } = {}
 ): Promise<RAGResponse> {
   const {
@@ -217,7 +223,7 @@ export async function ragSearch(
 
   let answer: string;
   try {
-    answer = await generateAnswer(SYSTEM_PROMPT, buildUserPrompt(context, query, images), {
+    answer = await generateAnswer(SYSTEM_PROMPT, buildUserPrompt(context, query, images, options.conversationHistory), {
       model: llmModel,
       temperature: 0.1,
       maxTokens: 1024,
@@ -358,8 +364,19 @@ function buildContext(chunks: ChunkRecord[]): string {
   return parts.join('\n').trim();
 }
 
-function buildUserPrompt(context: string, query: string, images?: RetrievedImage[]): string {
-  let prompt = `Context:\n${context}`;
+function buildUserPrompt(context: string, query: string, images?: RetrievedImage[], conversationHistory?: ConversationMessage[]): string {
+  let prompt = '';
+
+  if (conversationHistory && conversationHistory.length > 0) {
+    prompt += 'Conversation History:\n';
+    for (const msg of conversationHistory) {
+      const label = msg.role === 'user' ? 'User' : 'Assistant';
+      prompt += `${label}: ${msg.content}\n`;
+    }
+    prompt += '\n';
+  }
+
+  prompt += `Context:\n${context}`;
 
   // Add image metadata to context if images are available
   if (images && images.length > 0) {
