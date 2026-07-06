@@ -1,10 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { 
-  Database, 
-  FileText, 
-  Component as ComponentIcon, 
+import {
+  Database,
+  FileText,
+  Component as ComponentIcon,
   Plus,
   Settings,
   Home,
@@ -14,6 +14,7 @@ import {
   Globe,
   Brain,
   Palette,
+  MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -356,6 +357,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 style={{ color: router.pathname === '/admin/chat-history' ? '#fff' : textMuted.color }}
               >
                 Chat History
+              </Link>
+              <Link
+                href="/admin/widget"
+                className={`flex items-center space-x-2 px-3 py-2 text-sm rounded-lg transition hover:bg-white/10 ${
+                  router.pathname === '/admin/widget'
+                    ? 'bg-white/10 text-white'
+                    : ''
+                }`}
+                style={{ color: router.pathname === '/admin/widget' ? '#fff' : textMuted.color }}
+              >
+                <MessageSquare size={16} />
+                <span>Widget</span>
               </Link>
             </div>
           )}

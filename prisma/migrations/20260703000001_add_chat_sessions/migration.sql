@@ -1,4 +1,4 @@
-﻿-- CreateTable
+-- CreateTable
 CREATE TABLE "chat_sessions" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,

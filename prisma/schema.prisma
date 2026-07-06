@@ -368,3 +368,43 @@ model WorkflowSettings {
 
   @@map("workflow_settings")
 }
+
+model WidgetSettings {
+  id           String   @id @default(cuid())
+  title        String   @default("AI Chat Assistant")
+  welcomeText  String   @default("Hi! How can I help you today?")
+  primaryColor String   @default("#2563eb")
+  secondaryColor String @default("#1e293b")
+  textColor    String   @default("#ffffff")
+  bgColor      String   @default("#ffffff")
+  position     String   @default("right")
+  marginX      Int      @default(20)
+  marginY      Int      @default(20)
+  width        Int      @default(380)
+  height       Int      @default(600)
+  borderRadius Int      @default(16)
+  showLogo     Boolean  @default(true)
+  logoUrl      String?
+  logoWidth    Int      @default(40)
+  showAvatar   Boolean  @default(true)
+  avatarUrl    String?
+  avatarStyle  String   @default("rounded")
+  bubbleStyle  String   @default("rounded")
+  fontSize     String   @default("14px")
+  headerBgColor String  @default("#2563eb")
+  headerTextColor String @default("#ffffff")
+  userMsgBgColor  String @default("#2563eb")
+  userMsgTextColor String @default("#ffffff")
+  botMsgBgColor   String @default("#f3f4f6")
+  botMsgTextColor String @default("#111827")
+  inputBgColor    String @default("#ffffff")
+  inputBorderColor String @default("#e5e7eb")
+  sendButtonColor String @default("#2563eb")
+  sendIconColor   String @default("#ffffff")
+  customCss       String?
+  embedActive     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("widget_settings")
+}
